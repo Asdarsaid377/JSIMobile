@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "jsi-mobile",
+    "name": "JSI Mobile",
     "slug": "jsi-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,6 +20,17 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "JSI Mobile membutuhkan lokasi untuk verifikasi GPS saat login."
+        }
+      ],
+      "expo-splash-screen"
+    ]
   }
 }
