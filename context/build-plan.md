@@ -20,12 +20,13 @@ Setiap feature harus selesai dalam satu sesi kerja, bisa diverifikasi visual/fun
 - Wiring `expo-location` — ambil GPS, tolak submit kalau belum granted/dapat lokasi (pesan sama seperti web)
 - Wiring `POST /backend-api/auth/login` (lihat `api-standards.md`), simpan token, fetch profile
 - `RootNavigator` baca session asli (bukan mock lagi) → switch `AdminTabs`/`TimsesTabs` berdasar role
-- **Butuh referensi desain dari `context/designs/` sebelum build UI** (lihat `ui-workflow.md`)
+- Referensi desain: `context/designs/login.png` (sudah ada — ikuti `ui-workflow.md` Step 1-2 seperti biasa, tidak perlu tanya user lagi untuk screen ini)
 - Verifikasi: login dengan akun asli → token tersimpan → sesi persist setelah app di-restart → role menentukan tab yang tampil
 
 ### 03 Profile
 - Screen Profile: lihat &amp; edit data diri
 - Logout (hapus token, kembali ke AuthStack)
+- Referensi desain: `context/designs/profile.png`
 - Verifikasi: submit perubahan tersimpan, logout mengembalikan ke Login
 
 ---
@@ -34,18 +35,22 @@ Setiap feature harus selesai dalam satu sesi kerja, bisa diverifikasi visual/fun
 
 ### 04 Program Pemenangan — Door To Door
 - List &amp; input kunjungan Door To Door, wiring ke `/Users/asdarsaid/JSI/api/src/dtdoor`
+- Referensi desain: `context/designs/program-pemenangan.png`
 - Verifikasi: kunjungan baru tersimpan &amp; muncul di list
 
 ### 05 Program Pemenangan — Social Event / GOTV
 - List &amp; input Social Event, wiring ke `/Users/asdarsaid/JSI/api/src/gotv`
+- Referensi desain: `context/designs/program-pemenangan.png` (satu file mencakup kedua sub-program — cek apakah ada section terpisah di dalamnya)
 - Verifikasi: sama seperti 04
 
 ### 06 Timses
 - Lihat hierarki tim (Kabupaten → Kecamatan → Desa) &amp; status online, wiring ke `/Users/asdarsaid/JSI/api/src/timses`
+- Referensi desain: `context/designs/timses.png`
 - Verifikasi: hierarki tampil benar, status online update realtime
 
 ### 07 Lacak Relawan / Tracking
 - Map view + list status online anggota tim (realtime via socket.io)
+- Referensi desain: `context/designs/lacak-relawan.png`
 - Verifikasi: posisi/status update tanpa refresh manual
 
 ---
@@ -60,16 +65,14 @@ Setiap feature harus selesai dalam satu sesi kerja, bisa diverifikasi visual/fun
 
 ### 09 Hasil Rekap (2019/2024)
 - Drill-down Provinsi → Kabupaten → Kecamatan → Kelurahan → TPS per jenis pemilihan
+- Referensi desain: `context/designs/hasil-rekap.png`
 - Verifikasi: drill-down menampilkan data benar di tiap level
-
-### 10 WhatsApp Broadcast
-- Kirim pesan ke Pendukung / Relawan — cek dulu apakah backend menyediakan endpoint kirim langsung atau perlu deep link WhatsApp native (beda dari pola `whatsapp-web.js` di `/Users/asdarsaid/JSI/api`, verifikasi dulu)
-- Verifikasi: pesan terkirim/deep link terbuka dengan benar
 
 ---
 
 ## Fase Berikutnya (di luar MVP saat ini)
 
+- **WhatsApp Broadcast** — dikeluarkan dari MVP karena belum ada desainnya (lihat `project-overview.md`). Begitu desain dibuat, tambahkan lagi sebagai item Phase 3 — cek juga apakah backend menyediakan endpoint kirim langsung atau perlu deep link WhatsApp native (beda dari pola `whatsapp-web.js` di `/Users/asdarsaid/JSI/api`, verifikasi dulu)
 - Survey, Tokoh, Zona, Bigdata Pendukung, Pengeluaran (sebagai screen mobile terpisah), Pertanyaan
 - Push notification
 - Offline cache

@@ -6,7 +6,7 @@
 
 **JSI Mobile** adalah aplikasi native (React Native/Expo, iOS & Android) untuk dashboard kampanye/pemilu JSI. Ini kanal tambahan untuk produk yang sama dengan web (repo `client` di `/Users/asdarsaid/JSI/client`) — bukan produk baru. Backend yang dipakai **sama** dengan web (NestJS API di `/Users/asdarsaid/JSI/api`, sebagian modul), sehingga satu akun berlaku lintas web & mobile.
 
-Desain visual untuk redesign mobile ini dibuat lewat Claude Design canvas oleh user — file/export desainnya akan ditaruh di `context/designs/` secara bertahap. Sampai file itu ada, **jangan build UI produksi** (lihat `CLAUDE.md` Aturan #1).
+Desain visual untuk redesign mobile ini dibuat lewat Claude Design canvas oleh user (`JSI Mobile Dashboard.dc.html`). 8 dari 9 screen sudah diexport ke `context/designs/` — cek Step 1 `ui-workflow.md` sebelum build UI screen manapun, jangan asumsikan token/layout tanpa membuka file desainnya.
 
 ---
 
@@ -29,20 +29,27 @@ Role dibaca dari response login/profile (`roles` field, sama seperti web) — li
 
 ## Halaman (Screens) — MVP
 
-Daftar ini diturunkan dari prompt desain yang sudah dibuat user di Claude Design canvas (redesign mobile dari `client`'s sidebar menu):
+Daftar ini diturunkan dari desain yang sudah dibuat user di Claude Design canvas (redesign mobile dari `client`'s sidebar menu). Kolom "Desain" menunjuk file referensi di `context/designs/`:
 
 ```
 Login                    → username/password + verifikasi GPS wajib (mengikuti client/src/pages/Login.jsx)
+                            Desain: context/designs/login.png
 Home / Dashboard         → ringkasan "Program Pemenangan" (jumlah Door To Door, Social Event/GOTV), quick access
+                            Desain: context/designs/home-dashboard.png
 DPT                      → daftar pemilih per kabupaten, filter Kecamatan → Kelurahan → TPS, search,
                             badge status ikut Door To Door/Social Event, tambah/edit/hapus data
+                            Desain: context/designs/dpt.png
 Hasil Rekap (2019/2024)  → drill-down Provinsi → Kabupaten → Kecamatan → Kelurahan → TPS untuk
                             DPR RI / DPRD Provinsi / DPRD Kabupaten
+                            Desain: context/designs/hasil-rekap.png
 Timses                   → hierarki Kabupaten → Kecamatan → Desa, status online/offline anggota
+                            Desain: context/designs/timses.png
 Program Pemenangan       → input & progress Door To Door dan Social Event
+                            Desain: context/designs/program-pemenangan.png
 Lacak Relawan / Tracking → peta posisi anggota tim real-time (socket.io) + list status online
-WhatsApp Broadcast       → kirim pesan ke "Pendukung" atau ke "Relawan"
+                            Desain: context/designs/lacak-relawan.png
 Profile                  → edit profil user yang sedang login
+                            Desain: context/designs/profile.png
 ```
 
 ---
@@ -66,11 +73,11 @@ Bottom tab bar, isi tab berbeda sesuai role, muncul **setelah login**:
 - Timses: lihat hierarki tim & status online
 - Program Pemenangan: input kunjungan Door To Door & Social Event
 - Lacak Relawan: peta + list status online tim (realtime via socket.io)
-- WhatsApp Broadcast: kirim pesan ke pendukung/relawan
 - Profile: lihat & edit profil sendiri
 
 ## Di Luar Scope (Out of Scope untuk MVP)
 
+- **WhatsApp Broadcast** — dikeluarkan dari scope MVP (belum ada desain untuk screen ini); bisa masuk kembali begitu desainnya dibuat
 - Modul yang belum ada di daftar screen MVP di atas (Survey, Tokoh, Zona, Bigdata Pendukung, Pengeluaran, Ruang Publik sebagai screen terpisah, Pertanyaan) — bisa ditambahkan di fase berikutnya, catat di `build-plan.md` saat mulai dikerjakan
 - Admin approval/back-office yang lebih nyaman di layar besar tetap di web `client`
 - Fitur apapun yang butuh schema DPT/Hasil Rekap yang belum dikonfirmasi lewat repo backend (lihat `CLAUDE.md` Aturan #6)

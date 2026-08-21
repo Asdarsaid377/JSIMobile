@@ -7,8 +7,8 @@ Update file ini setiap selesai satu feature. Claude Code yang membaca file ini h
 ## Status Saat Ini
 
 **Phase:** 1 — Foundation
-**Terakhir selesai:** 01 Setup Project
-**Berikutnya:** 02 Auth — Login dengan GPS (butuh referensi desain dari `context/designs/` sebelum build UI — lihat `ui-workflow.md`)
+**Terakhir selesai:** 01 Setup Project + referensi desain masuk ke `context/designs/`
+**Berikutnya:** 02 Auth — Login dengan GPS (referensi desain **sudah ada**: `context/designs/login.png` — lanjut ke `/build-ui` tanpa perlu tanya user lagi)
 
 ---
 
@@ -28,7 +28,6 @@ Update file ini setiap selesai satu feature. Claude Code yang membaca file ini h
 ### Phase 3 — Modul dengan Backend Belum Terkonfirmasi
 - [ ] 08 DPT (blocked — belum ada repo backend)
 - [ ] 09 Hasil Rekap 2019/2024 (blocked — belum ada repo backend)
-- [ ] 10 WhatsApp Broadcast
 
 ---
 
@@ -42,6 +41,8 @@ _Catat keputusan penting di sini saat dibuat. Format: tanggal — keputusan — 
 - 2026-08-21 — Scope sesi scaffold ini dibatasi ke: Expo project jalan (navigasi kosong, axios client, token storage) + seluruh dokumen claude-kit. Login dan screen lain sengaja **tidak** dibangun sesi ini (keputusan eksplisit user) — dikerjakan sesi berikutnya via `/new-feature`.
 - 2026-08-21 — `babel-preset-expo` harus di-install manual (tidak otomatis ikut template `blank-typescript` SDK 57) — tanpa ini Metro gagal transform. Lihat `library-docs.md`.
 - 2026-08-21 — Ditambahkan `declare module "*.css";` di `nativewind-env.d.ts` untuk mengatasi TS2882 pada `import "./global.css"` di `App.tsx` (versi NativeWind terpasang tidak mendeklarasikan ambient module ini). Lihat `library-docs.md`.
+- 2026-08-21 — 8 dari 9 screen MVP sudah punya referensi desain nyata (export manual dari Claude Design canvas "JSI Mobile Dashboard.dc.html" milik user) di `context/designs/`: `login.png`, `home-dashboard.png`, `dpt.png`, `hasil-rekap.png`, `timses.png`, `program-pemenangan.png`, `lacak-relawan.png`, `profile.png`. Sekilas dari `login.png`: header gelap yang dipakai desain nyata dekat dengan token placeholder `primary`/`background` yang sudah ada — tetap **audit penuh terhadap `ui-tokens.md` wajib dilakukan** saat `/build-ui` jalan pertama kali (Step 3 di `ui-workflow.md`), jangan asumsikan token placeholder sudah 100% cocok.
+- 2026-08-21 — **WhatsApp Broadcast dikeluarkan dari scope MVP** (bukan "menunggu desain") karena tidak ada file desain untuk screen ini — dipindah ke luar MVP di `project-overview.md`/`build-plan.md`. Item `10 WhatsApp Broadcast` dihapus dari checklist Phase 3 di atas.
 
 ---
 
