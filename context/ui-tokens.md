@@ -1,6 +1,6 @@
 # UI Tokens
 
-**PLACEHOLDER.** Nilai di bawah ini diseed dari web `client/src/css/tailwind.config.js` (`primary: #1E293B`, `primary-blue: #3B82F6`, font Inter) hanya supaya scaffold punya sesuatu yang jalan. Ini **bukan** desain final — begitu file/export dari Claude Design canvas masuk ke `context/designs/`, update tabel ini untuk mencocokkan (warna, spacing, radius, typography semua bisa berubah).
+Diaudit pertama kali terhadap desain nyata saat `/build-ui` jalan untuk Login (`context/designs/login.png`, 2026-08-21) — lihat pixel-sampling di *Decisions* `progress-tracker.md`. Warna badge (`warning-soft`, `success-soft`) dan `accent` cocok persis dengan placeholder web-seeded; `background` dan 3 token baru (`surface-inverse`, `text-inverse`, `text-inverse-muted`) diubah/ditambah untuk mencocokkan desain. Audit ulang setiap kali screen baru dengan pola warna baru muncul — jangan asumsikan seluruh sisa tabel ini final hanya karena satu screen sudah cocok.
 
 Pakai nilai persis dari sini — jangan hardcode warna atau memakai kelas warna bawaan Tailwind/NativeWind di component. Definisi aktualnya ada di `tailwind.config.js` — file ini harus selalu sinkron dengannya.
 
@@ -25,13 +25,16 @@ Pakai nilai persis dari sini — jangan hardcode warna atau memakai kelas warna 
 
 | Token | Hex | Peran |
 | --- | --- | --- |
-| `background` | `#ffffff` | Background screen |
-| `surface` | `#ffffff` | Card, tab bar, permukaan utama |
+| `background` | `#f8fafc` | Background screen (diaudit dari `login.png` — sedikit off-white, bukan putih murni) |
+| `surface` | `#ffffff` | Card, tab bar, input field, permukaan utama (putih murni — kontras dengan `background`) |
 | `surface-secondary` | `#f1f5f9` | Background section sekunder |
+| `surface-inverse` | `#0f172a` | Background gelap untuk section hero/branding (mis. header login) — **beda** dari `primary` |
 | `border` | `#cbd5e1` | Border card, input, divider |
 | `text-primary` | `#1e293b` | Teks utama, heading |
 | `text-secondary` | `#334155` | Body text sekunder |
 | `text-muted` | `#64748b` | Caption, placeholder |
+| `text-inverse` | `#ffffff` | Teks utama di atas `surface-inverse` |
+| `text-inverse-muted` | `#94a3b8` | Teks sekunder/caption di atas `surface-inverse` |
 | `primary` | `#1e293b` | Warna gelap brand (dari `primary.DEFAULT` web) |
 | `accent` | `#3b82f6` | Biru brand (dari `primary.blue` web) — tab aktif, tombol primary |
 | `accent-soft` | `#dbeafe` | Background lembut (badge, icon circle) |

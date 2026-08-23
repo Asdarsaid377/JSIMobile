@@ -1,8 +1,8 @@
 /**
- * PLACEHOLDER tokens — seeded from the web app's src/css/tailwind.config.js
- * (/Users/asdarsaid/JSI/client) since no mobile design export exists yet.
- * Replace with real values once a design lands in context/designs/ and
- * context/ui-tokens.md is updated — see context/ui-tokens.md for the rule.
+ * Tokens audited against real design exports in context/designs/ (Claude Design
+ * canvas "JSI Mobile Dashboard.dc.html"). First audit: login.png (see
+ * context/ui-tokens.md and context/progress-tracker.md Decisions for what
+ * changed vs. the original web-seeded placeholder).
  *
  * @type {import('tailwindcss').Config}
  */
@@ -12,13 +12,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#ffffff",
+        background: "#f8fafc",
         surface: "#ffffff",
         "surface-secondary": "#f1f5f9",
+        "surface-inverse": "#0f172a",
         border: "#cbd5e1",
         "text-primary": "#1e293b",
         "text-secondary": "#334155",
         "text-muted": "#64748b",
+        "text-inverse": "#ffffff",
+        "text-inverse-muted": "#94a3b8",
         primary: "#1e293b",
         accent: "#3b82f6",
         "accent-soft": "#dbeafe",

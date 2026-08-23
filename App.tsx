@@ -15,6 +15,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { RootNavigator } from "@/navigation/RootNavigator";
+import { AuthProvider } from "@/hooks/useAuth";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -41,8 +42,10 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <RootNavigator />
-        <StatusBar style="dark" />
+        <AuthProvider>
+          <RootNavigator />
+          <StatusBar style="dark" />
+        </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

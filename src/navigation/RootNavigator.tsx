@@ -1,30 +1,36 @@
-import { useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 
 import { NavigationContainer } from "@react-navigation/native";
 
 import { AdminTabs } from "@/navigation/AdminTabs";
 import { AuthStack } from "@/navigation/AuthStack";
 import { TimsesTabs } from "@/navigation/TimsesTabs";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocationBeacon } from "@/hooks/useLocationBeacon";
+import type { Role } from "@/types/auth";
 
-type Role = "admin" | "adminsekret" | "timses";
+const ADMIN_ROLES: readonly Role[] = ["admin", "adminsekret"];
 
-type Session = {
-  token: string;
-  role: Role;
-} | null;
-
-// Placeholder session state — no real login wiring yet (see context/build-plan.md,
-// Phase 2 "Auth"). Once /backend-api/auth/login is wired, this becomes a real
-// auth state read from secure-store + a profile fetch, mirroring
-// client/src/pages/dpt/layout-hook.js's useLayoutHook pattern.
 export function RootNavigator() {
-  const [session] = useState<Session>(null);
+  const { status, session } = useAuth();
+  // Feature 07 — dipasang di sini (bukan di dalam AdminTabs/TimsesTabs) supaya
+  // jalan untuk semua role terlepas dari tab yang aktif. Lihat useLocationBeacon.ts.
+  useLocationBeacon();
+
+  if (status === "loading") {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator color="#3b82f6" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
-      {!session && <AuthStack />}
-      {session && (session.role === "admin" || session.role === "adminsekret") && <AdminTabs />}
-      {session && session.role === "timses" && <TimsesTabs />}
+      {status === "unauthenticated" && <AuthStack />}
+      {status === "authenticated" && session ? (
+        ADMIN_ROLES.includes(session.user.roles) ? <AdminTabs /> : <TimsesTabs />
+      ) : null}
     </NavigationContainer>
   );
 }

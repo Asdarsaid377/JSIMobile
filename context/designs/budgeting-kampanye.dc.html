@@ -1,0 +1,182 @@
+<!--
+  Referensi desain "Budgeting Kampanye" (item #3 saran konsultan politik,
+  build-plan.md § Fase Berikutnya).
+
+  BUKAN screenshot manual seperti file .png lain di folder ini — ini
+  markup .dc.html ASLI (artboard 12 dari 13) yang dibaca langsung dari
+  project Claude Design user ("Desain Mobile JSI Dashboard",
+  projectId 160ea937-2f8a-4ff4-9977-f8bc398c90a0) via tool DesignSync,
+  2026-08-22. Lebih presisi dari PNG (hex/teks eksak, bukan pixel-sampled).
+
+  Cara pakai: buka file ini di browser mana pun untuk lihat layout +
+  warna asli (butuh koneksi internet untuk font Inter/JetBrains Mono).
+  Data contoh (budgetPos/budgetTx/budgetTren) ada di komentar JS di
+  bagian bawah file ini — itu ANGKA DEMO dari canvas, bukan data asli.
+
+  ⚠️ BELUM DIPUTUSKAN sebelum implementasi nyata (lihat progress-tracker.md):
+  1. 5 "pos anggaran" di sini (Atribut & Alat Peraga, Operasional Timses,
+     Door To Door, Social Event, Digital & Broadcast) = kategori OPERASIONAL
+     internal, BUKAN kategori resmi LPSDK/LPPDK (KPU/PKPU) yang sudah
+     dikonfirmasi user duluan sesi sebelumnya. Perlu klarifikasi ulang:
+     pakai 5 kategori ini apa adanya, atau dipetakan ke kategori resmi?
+  2. Entry point di canvas ini via "drawerItems" (menu hamburger) — app
+     JSI mobile SUDAH TIDAK PAKAI drawer (lihat Decisions "TEMUAN NAVIGASI
+     BESAR"). Kandidat nyata: shortcut baru di grid Akses Cepat Home.
+-->
+<!-- ============ 12. BUDGETING KAMPANYE ============ -->
+<div style="display:flex;flex-direction:column;gap:14px">
+  <div style="font:700 13px Inter;color:#64748B;letter-spacing:.02em">12 · BUDGETING KAMPANYE (SEKUNDER — DRAWER)</div>
+  <div style="width:390px;background:#1E293B;border-radius:46px;padding:14px;box-shadow:0 20px 50px rgba(15,23,42,.25)">
+    <div style="background:#F8FAFC;border-radius:34px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+      <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font:600 14px Inter;color:#0F172A;flex-shrink:0">
+        <span>9:41</span>
+        <div style="width:18px;height:10px;border:1.5px solid #0F172A;border-radius:2px;position:relative"><div style="position:absolute;inset:1.5px;width:11px;background:#0F172A;border-radius:1px"></div></div>
+      </div>
+      <div style="padding:6px 20px 10px;display:flex;flex-direction:column;gap:10px;flex-shrink:0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:10px"><span style="font:600 22px Inter;color:#334155">‹</span><span style="font:800 19px Inter;color:#0F172A">Budgeting Kampanye</span></div>
+          <button style="width:36px;height:36px;border:1px solid #E2E8F0;background:#fff;border-radius:10px;font:600 14px Inter;color:#334155">⤓</button>
+        </div>
+        <div style="display:flex;background:#F1F5F9;border-radius:11px;padding:3px">
+          <button onClick="{{ setBudgetBulan }}" style="flex:1;border:none;border-radius:9px;padding:8px;font:700 12px Inter;background:{{ bulanTabBg }};color:{{ bulanTabFg }}">Bulan Ini</button>
+          <button onClick="{{ setBudgetTotal }}" style="flex:1;border:none;border-radius:9px;padding:8px;font:700 12px Inter;background:{{ totalTabBg }};color:{{ totalTabFg }}">Total Kampanye</button>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:0 20px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="background:#1E293B;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="font:500 11px Inter;color:#94A3B8">Total Anggaran {{ budgetScope }}</span>
+            <span style="font:800 24px Inter;color:#fff">Rp {{ budgetTotal }}</span>
+          </div>
+          <div style="height:10px;background:rgba(255,255,255,.14);border-radius:99px;overflow:hidden;display:flex">
+            <div style="height:100%;background:#3B82F6;width:{{ budgetUsedPct }}"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font:500 10px Inter;color:#94A3B8">Terpakai</span><span style="font:700 13px Inter;color:#93C5FD">Rp {{ budgetUsed }} · {{ budgetUsedPct }}</span></div>
+            <div style="display:flex;flex-direction:column;gap:2px;text-align:right"><span style="font:500 10px Inter;color:#94A3B8">Sisa</span><span style="font:700 13px Inter;color:#fff">Rp {{ budgetLeft }}</span></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <div style="flex:1;background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:13px">
+            <div style="font:800 17px Inter;color:#0F172A">{{ budgetTxCount }}</div>
+            <div style="font:500 10.5px Inter;color:#64748B;margin-top:3px">Transaksi tercatat</div>
+          </div>
+          <div style="flex:1;background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:13px">
+            <div style="font:800 17px Inter;color:#DC2626">{{ budgetOverCount }}</div>
+            <div style="font:500 10.5px Inter;color:#64748B;margin-top:3px">Pos melebihi plafon</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 14px Inter;color:#0F172A">Realisasi per Pos Anggaran</span>
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ budgetPos }}" as="b" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;justify-content:space-between;font:600 11.5px Inter;color:#334155"><span>{{ b.name }}</span><span style="color:{{ b.color }}">{{ b.pctStr }}</span></div>
+                <div style="height:8px;background:#F1F5F9;border-radius:99px;overflow:hidden"><div style="height:100%;border-radius:99px;background:{{ b.color }};width:{{ b.barStr }}"></div></div>
+                <span style="font:400 10px Inter;color:#94A3B8">Rp {{ b.used }} dari plafon Rp {{ b.plafon }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 14px Inter;color:#0F172A">Tren Pengeluaran Mingguan</span>
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:flex-end;gap:10px;height:110px">
+              <sc-for list="{{ budgetTren }}" as="t" hint-placeholder-count="6">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%">
+                  <span style="flex-shrink:0;font:700 9px Inter;color:#64748B">{{ t.short }}</span>
+                  <div style="flex:1;min-height:0;width:100%;display:flex;align-items:flex-end">
+                    <div style="flex-shrink:0;width:100%;border-radius:6px 6px 2px 2px;background:{{ t.color }};height:{{ t.hStr }}"></div>
+                  </div>
+                  <span style="flex-shrink:0;font:600 9px Inter;color:#94A3B8">{{ t.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="font:400 10px Inter;color:#94A3B8">Batang biru tua = melewati rata-rata mingguan</span>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 14px Inter;color:#0F172A">Pengeluaran Terbaru</span>
+          <sc-for list="{{ budgetTx }}" as="t" hint-placeholder-count="4">
+            <div style="background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:13px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0">
+                <span style="font:700 12.5px Inter;color:#0F172A">{{ t.title }}</span>
+                <span style="font:400 10.5px Inter;color:#64748B">{{ t.pos }} · {{ t.tanggal }} · {{ t.oleh }}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                <span style="font:700 12.5px Inter;color:#0F172A">Rp {{ t.nominal }}</span>
+                <span style="font:600 9.5px Inter;padding:3px 8px;border-radius:999px;background:{{ t.bg }};color:{{ t.fg }}">{{ t.status }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{ budgetSheetOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(15,23,42,.45);z-index:5" onClick="{{ toggleBudgetSheet }}"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:22px 22px 0 0;padding:10px 20px 24px;z-index:6;display:flex;flex-direction:column;gap:12px">
+          <div style="width:36px;height:4px;background:#E2E8F0;border-radius:99px;margin:0 auto"></div>
+          <span style="font:700 15px Inter;color:#0F172A">Catat Pengeluaran</span>
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;font:600 13px Inter;color:#0F172A">Pos anggaran <span style="color:#94A3B8">⌄</span></div>
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px;font:400 13px Inter;color:#94A3B8">Nominal (Rp)</div>
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px 14px;font:400 13px Inter;color:#94A3B8">Keterangan</div>
+          <div style="background:#F8FAFC;border:1px dashed #E2E8F0;border-radius:12px;padding:24px 14px;font:400 13px Inter;color:#CBD5E1;text-align:center">＋ Lampirkan bukti / nota</div>
+          <button onClick="{{ toggleBudgetSheet }}" style="background:#3B82F6;color:#fff;border:none;border-radius:12px;padding:14px;font:700 14px Inter">Simpan Pengeluaran</button>
+        </div>
+      </sc-if>
+
+      <div style="flex-shrink:0;padding:12px 20px 20px;background:#fff;border-top:1px solid #E2E8F0">
+        <button onClick="{{ toggleBudgetSheet }}" style="width:100%;background:#3B82F6;color:#fff;border:none;border-radius:12px;padding:14px;font:700 13.5px Inter">+ Catat Pengeluaran</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--
+  Data state asli dari script tail canvas (react-state getters, disederhanakan
+  sebagai referensi read-only — bukan kode yang dieksekusi di sini):
+
+  budgetScope: 'bulan' | 'total' (toggle, default 'bulan')
+  budgetTotal:  bulan '450.000.000'   | total '2.750.000.000'
+  budgetUsed:   bulan '318.500.000'   | total '1.842.000.000'
+  budgetLeft:   bulan '131.500.000'   | total '908.000.000'
+  budgetUsedPct: bulan '71%'          | total '67%'
+  budgetTxCount: bulan 84             | total 512
+  budgetOverCount: bulan 2            | total 3
+
+  budgetPos (bulan ini):
+    Atribut & Alat Peraga   92%  138.000.000 / 150.000.000
+    Operasional Timses      74%   74.000.000 / 100.000.000
+    Door To Door           108%   54.000.000 /  50.000.000   (melebihi plafon)
+    Social Event            61%   36.600.000 /  60.000.000
+    Digital & Broadcast     43%   15.900.000 /  37.000.000
+    -> warna bar: >100% merah #DC2626, >=85% kuning #F59E0B, selain itu biru #3B82F6
+
+  budgetPos (total kampanye):
+    Atribut & Alat Peraga   81%  729.000.000 / 900.000.000
+    Operasional Timses      66%  429.000.000 / 650.000.000
+    Door To Door           104%  416.000.000 / 400.000.000   (melebihi plafon)
+    Social Event            52%  182.000.000 / 350.000.000
+    Digital & Broadcast     17%   86.000.000 / 450.000.000
+
+  budgetTren (bar chart, bulan ini = mingguan, total = bulanan):
+    bulan: W1 52jt(58%) W2 78jt(86%) W3 64jt(71%) W4 91jt(100%) W5 33jt(37%)
+    total: Apr 286jt(47%) Mei 342jt(56%) Jun 408jt(67%) Jul 506jt(83%) Agu 612jt(100%)
+    -> batang navy #1E293B kalau di atas rata-rata 5 titik, selain itu biru #3B82F6
+
+  budgetTx (4 transaksi terbaru, sama di kedua scope):
+    Cetak baliho 40 titik      | Atribut     | 20 Agu | Dedi K.   | Rp 28.400.000 | Disetujui
+    Konsumsi kunjungan D2D     | Door To Door| 19 Agu | Neng Sari | Rp  4.150.000 | Disetujui
+    Sewa panggung Cimekar      | Social Event| 18 Agu | Mira A.   | Rp 12.800.000 | Menunggu
+    Iklan WhatsApp blast       | Digital     | 17 Agu | Yayat H.  | Rp  3.600.000 | Ditolak
+    -> pill status: Disetujui hijau #DCFCE7/#166534, Menunggu kuning #FEF3C7/#92400E, Ditolak merah #FEE2E2/#991B1B
+
+  Bottom sheet "Catat Pengeluaran" (form input): pos anggaran (select),
+  nominal (Rp), keterangan, lampiran bukti/nota (upload placeholder,
+  belum ada implementasi upload asli di canvas), tombol submit "Simpan Pengeluaran".
+-->

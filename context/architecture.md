@@ -6,7 +6,7 @@
 
 | Layer | Tool | Keterangan |
 | --- | --- | --- |
-| Framework | Expo (React Native) SDK 57 | Cek `package.json` untuk versi persis terpasang |
+| Framework | Expo (React Native) SDK 54 | Dipilih agar sejajar dengan `temutani-mobile` (bukan SDK 57 default `create-expo-app`) — cek `package.json` untuk versi persis terpasang |
 | Bahasa | TypeScript strict | Seluruh codebase |
 | Navigasi | React Navigation | Native stack (`AuthStack`) + bottom tabs per role (`AdminTabs`, `TimsesTabs`) |
 | Styling | NativeWind | Sintaks Tailwind untuk React Native — token di `tailwind.config.js`, saat ini **placeholder** dari `client/src/css/tailwind.config.js` |
@@ -16,6 +16,7 @@
 | Realtime | `socket.io-client` | Menggantikan koneksi socket di `client/src/pages/dpt/layout-hook.js` |
 | Lokasi | `expo-location` | GPS wajib saat login |
 | Validasi | zod | Validasi input di boundary (form submit, service layer) |
+| Animasi | `react-native-reanimated` | Dependency eksplisit (bukan cuma transitif dari NativeWind) — lihat `library-docs.md` alasannya; belum dipakai langsung, tersedia untuk `ui-rules.md` § Animasi &amp; Micro-interactions saat dibutuhkan |
 
 ---
 
@@ -49,21 +50,37 @@
 ├── app.json                         → Konfigurasi Expo (nama app, icon, splash, plugin native)
 ├── src/
 │   ├── navigation/
-│   │   ├── RootNavigator.tsx        → Pilih AuthStack vs tab navigator berdasar session + role
-│   │   ├── AuthStack.tsx            → Login (stub — real screen belum dibangun)
-│   │   ├── AdminTabs.tsx            → Bottom tabs untuk admin/adminsekret (stub)
-│   │   └── TimsesTabs.tsx           → Bottom tabs untuk timses (stub)
-│   ├── screens/                     → Satu folder per fitur, satu file per screen (belum ada isinya — dibangun via /new-feature)
+│   │   ├── RootNavigator.tsx        → Baca useAuth() (status + role) → AuthStack vs AdminTabs/TimsesTabs;
+│   │   │                              juga mount useLocationBeacon() (Feature 07, semua role)
+│   │   ├── AuthStack.tsx            → Stack berisi LoginScreen
+│   │   ├── AdminTabs.tsx            → Bottom tabs admin/adminsekret: Home/DPT/Rekap/Program/Profil (5 tab,
+│   │   │                              persis sesuai semua desain — lihat progress-tracker.md Decisions Feature 08)
+│   │   ├── TimsesTabs.tsx           → Sama struktur dengan AdminTabs (5 tab yang sama)
+│   │   ├── HomeStack.tsx            → Dipakai bersama Admin/TimsesTabs: HomeScreen (root) → Timses, LacakRelawan
+│   │   │                              (pushed — dipindah dari tab tersendiri, Feature 08)
+│   │   ├── DptStack.tsx             → DptProvinsiScreen (root) → DptKabupatenScreen (pushed) → DptListScreen
+│   │   │                              (pushed, ref context/designs/dpt.png) — 3 tahap sesuai alur asli
+│   │   └── ProgramStack.tsx         → ProgramPemenanganScreen (root) → DtdoorForm, GotvForm (pushed)
+│   ├── screens/
+│   │   └── auth/LoginScreen.tsx     → Screen Login (Feature 02) — ref context/designs/login.png
 │   ├── components/
-│   │   ├── ui/                      → Primitive reusable (Button, Card, Input, dst.) — belum ada, build sesuai ui-workflow.md
-│   │   └── <fitur>/                 → Component per fitur
+│   │   ├── ui/                      → Primitive reusable — Button.tsx, Input.tsx (lihat ui-registry.md)
+│   │   └── auth/                    → GpsStatusBanner.tsx (component per fitur)
 │   ├── lib/
-│   │   └── api/
-│   │       ├── client.ts            → axios instance, baseURL dari EXPO_PUBLIC_API_URL, interceptor Authorization Bearer
-│   │       └── token.ts             → getToken/setToken/clearToken via expo-secure-store
-│   ├── services/                    → Fungsi query/mutation per domain, dipanggil dari hooks — belum ada
-│   ├── hooks/                       → Custom hook TanStack Query per domain — belum ada
-│   └── types/                       → Type bersama lintas domain — belum ada
+│   │   ├── api/
+│   │   │   ├── client.ts            → axios instance, baseURL dari EXPO_PUBLIC_API_URL (sudah termasuk /api),
+│   │   │   │                          interceptor Authorization Bearer + registerUnauthorizedHandler (401 global)
+│   │   │   └── token.ts             → getToken/setSession/getSession/clearSession via expo-secure-store
+│   │   └── dtdoorScore.ts           → Model skor "Kekuatan Wilayah" (Feature 10) — pure business logic,
+│   │                                   BUKAN transport API, makanya di luar lib/api/ (lihat progress-tracker.md)
+│   ├── services/
+│   │   └── auth.ts                  → loginRequest — POST /auth/login, mapping response ke AuthUser
+│   ├── hooks/
+│   │   ├── useAuth.tsx              → AuthContext/AuthProvider/useAuth — session in-memory + bootstrap dari secure-store
+│   │   ├── useLogin.ts              → TanStack mutation login, panggil useAuth().login on success
+│   │   └── useLocationPermission.ts → Wrap expo-location permission+getCurrentPosition, re-check tiap screen focus
+│   └── types/
+│       └── auth.ts                  → Role, AuthUser, Session
 ├── assets/                          → Icon, splash screen
 ├── .env.example                     → Daftar env tanpa value
 └── .env                             → Env asli (tidak di-commit)
@@ -85,12 +102,15 @@ Screen (Component)
   → fungsi service (src/services/*.ts) → panggil src/lib/api/client.ts (axios + Bearer token)
   → render (query) / invalidateQueries + refetch (mutation)
 
-Auth:
-Screen (Login — belum dibangun)
-  → src/services/auth.ts (belum dibangun) → POST {EXPO_PUBLIC_API_URL}/backend-api/auth/login
-    dengan { username, password, location: { lat, long } } (GPS wajib, lihat client/src/pages/Login.jsx)
-  → simpan acces_token via src/lib/api/token.ts (expo-secure-store)
-  → RootNavigator baca status auth + role → switch AuthStack/AdminTabs/TimsesTabs
+Auth (Feature 02, selesai — kontrak diverifikasi ke /Users/asdarsaid/JSI/api/src/auth, lihat api-standards.md):
+Screen (src/screens/auth/LoginScreen.tsx)
+  → src/hooks/useLogin.ts (TanStack mutation) → src/services/auth.ts → POST {EXPO_PUBLIC_API_URL}/auth/login
+    (base URL sudah termasuk /api) dengan { nik, password, location: { lat, long } } — GPS wajib secara UX
+    (blok submit), tapi backend tidak memvalidasi field location
+  → simpan { token, user } via src/lib/api/token.ts (expo-secure-store) — tidak ada fetch profile terpisah,
+    user diambil langsung dari payload response login
+  → src/hooks/useAuth.tsx (AuthProvider/useAuth) pegang session di memori + bootstrap dari secure-store saat app start
+  → RootNavigator baca status auth + role dari useAuth() → switch AuthStack/AdminTabs/TimsesTabs
 ```
 
 Beda kunci dari web: tidak ada cookie/browser session — semua lewat JWT di `expo-secure-store` dan header `Authorization: Bearer`, bukan `axios.defaults.headers.common` global seperti `client`'s `apiDpt`/`layout-hook.js`.

@@ -52,15 +52,17 @@ Mobile tidak perlu ukuran heading sebesar desktop — layar sempit, heading terb
 
 Ganti `<button>` web dengan `TouchableOpacity`/`Pressable`:
 
-- **Primary:** `bg-accent`, teks `text-on-accent`, `rounded-lg`, padding `px-lg py-sm`, `font-bold` — aksi utama (submit form, "Tandai Selesai")
+- **Primary:** `bg-accent`, teks `text-on-accent`, `rounded-lg`, padding `px-lg py-sm`, `font-bold` — aksi utama in-context (submit form dalam card, "Tandai Selesai")
 - **Secondary:** `bg-surface border border-border text-text-primary`
+- **Brand:** `bg-primary`, teks `text-on-accent` — CTA full-width di screen auth/hero (mis. tombol "Masuk" di Login). **Ditambahkan setelah audit `login.png`** (2026-08-21) — tombol utama di layar itu ternyata gelap (`primary` #1e293b), bukan biru `accent`. Baru 1 data point; kalau desain screen lain menunjukkan pola beda untuk CTA full-width, audit ulang varian ini, jangan asumsikan final.
 - Semua button: `active:opacity-80`, area tekan minimum 44x44pt
+- Implementasi reference: `src/components/ui/Button.tsx` (lihat `ui-registry.md`)
 
 ---
 
 ## Icons — Berwarna &amp; Kontekstual
 
-- Library: `@expo/vector-icons` (bundled Expo, zero install), family utama `MaterialCommunityIcons`, fallback `Ionicons`
+- Library: `@expo/vector-icons`, family utama `MaterialCommunityIcons`, fallback `Ionicons` — **koreksi (2026-08-21):** package ini TIDAK otomatis terinstall di scaffold SDK 57 ini meski biasanya bundled Expo di versi lain; sudah di-`npx expo install @expo/vector-icons` saat Feature 02. Cek `node_modules/@expo/vector-icons` ada sebelum asumsi "zero install" di session berikutnya.
 - **DILARANG** pakai icon warna hitam/abu-abu monoton untuk icon yang punya makna status — setiap icon status HARUS berwarna sesuai perannya:
 
 | Konteks icon | Token warna | Contoh |

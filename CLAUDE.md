@@ -4,7 +4,7 @@
 
 Kamu adalah senior engineer pada project ini. File ini adalah entry point kamu. Baca dan patuhi tanpa pengecualian di setiap session.
 
-Project ini adalah **aplikasi mobile native (React Native/Expo)** untuk JSI — dashboard kampanye/pemilu. Ini kanal tambahan, bukan produk baru: backend dan aturan bisnis mengikuti API yang sama dengan repo web `client` (`/Users/asdarsaid/JSI/client`). Backend source-of-truth ada di repo terpisah `/Users/asdarsaid/JSI/api` (NestJS) — **tapi baru mencakup modul auth, dtdoor, gotv, ruangpublik, timses**. Modul DPT dan Hasil Rekap belum punya repo backend yang dibagikan ke sesi ini; kalau butuh detail schema/endpoint keduanya, **tanya user untuk path repo-nya** — jangan mengarang dari asumsi endpoint di web client saja (lihat `context/api-standards.md`).
+Project ini adalah **aplikasi mobile native (React Native/Expo)** untuk JSI — dashboard kampanye/pemilu. Ini kanal tambahan, bukan produk baru: backend dan aturan bisnis mengikuti API yang sama dengan repo web `client` (`/Users/asdarsaid/JSI/client`). Backend source-of-truth ada di repo terpisah `/Users/asdarsaid/JSI/api` (NestJS). **⚠️ Repo backend ini TERBUKTI BERUBAH dari waktu ke waktu dan modul yang "belum ada" bisa ternyata SUDAH ada** (Hasil Rekap & DPT sempat didokumentasikan "belum ada repo" di sesi awal, 2026-08-23 ketahuan keduanya sudah ada lengkap) — jangan percaya begitu saja status modul di dokumen manapun, termasuk kalimat ini, tanpa `find`/`grep` cepat ke `/Users/asdarsaid/JSI/api/src` dulu kalau ragu. Modul yang sudah diverifikasi lengkap ADA per 2026-08-23: auth, dtdoor, gotv, ruangpublik, timses (diganti modul `user`), dpr/dprd (Hasil Rekap), dpt. Kalau ada modul lain yang masih benar-benar tidak ditemukan setelah dicari, **tanya user untuk path repo-nya** — jangan mengarang dari asumsi endpoint di web client saja (lihat `context/api-standards.md`).
 
 ---
 
@@ -56,14 +56,13 @@ Setelah setiap feature selesai:
 
 ### 5. Jangan percaya training data untuk API library
 
-Expo dan React Navigation berubah cepat. Scaffold ini pakai **Expo SDK 57** — `AGENTS.md` (di-include otomatis di atas) sudah mengingatkan untuk cek dokumentasi versi persis (`docs.expo.dev/versions/v57.0.0/`) sebelum pakai API baru. Sebelum memakai API yang kamu tidak 100% yakin, baca `context/library-docs.md` dan/atau dokumentasi resmi terbaru. Jika ragu, katakan ragu — jangan mengarang API.
+Expo dan React Navigation berubah cepat. Repo ini pakai **Expo SDK 54** (dipilih agar sejajar dengan `temutani-mobile`, bukan SDK 57 default `create-expo-app` — lihat `library-docs.md` untuk alasannya) — `AGENTS.md` (di-include otomatis di atas) sudah mengingatkan untuk cek dokumentasi versi persis (`docs.expo.dev/versions/v54.0.0/`) sebelum pakai API baru. Sebelum memakai API yang kamu tidak 100% yakin, baca `context/library-docs.md` dan/atau dokumentasi resmi terbaru. Jika ragu, katakan ragu — jangan mengarang API.
 
 ### 6. Backend/schema bukan milik repo ini
 
-Repo ini **tidak punya source backend maupun migration sendiri**:
-- Modul yang sudah ada backend-nya (auth, dtdoor, gotv, ruangpublik, timses) → source ada di `/Users/asdarsaid/JSI/api`, baca dari sana untuk kebenaran endpoint/DTO, jangan asumsi dari training data.
-- Modul DPT dan Hasil Rekap → **belum ada repo backend yang dibagikan**. Endpoint yang terlihat dipakai `client` (mis. `/dpt/2024/:kabId`) adalah observasi dari web, bukan kontrak yang dikonfirmasi. Kalau sebuah feature butuh detail schema/endpoint modul ini, **tanya user path repo-nya** — jangan mengarang field atau perilaku.
-- Kalau feature mobile butuh endpoint baru/berubah di backend yang sudah ada repo-nya: beri tahu user perubahan itu perlu dikerjakan di `/Users/asdarsaid/JSI/api`, baru lanjut implementasi mobile setelah endpoint tersedia.
+Repo ini **tidak punya source backend maupun migration sendiri** — source backend ada di `/Users/asdarsaid/JSI/api` (branch `persiapan-2029`). **Repo backend ini terbukti berubah dari waktu ke waktu** (modul bisa pindah/hilang, base URL bisa berubah) — jangan percaya begitu saja dokumentasi lama di `api-standards.md`, dan jangan mengarang endpoint/field kalau ragu.
+
+**Sebelum wiring/mengubah endpoint apapun di mobile, WAJIB ikuti `context/api-standards.md` § Alur Verifikasi Endpoint** — ringkasnya: cek dulu cara web (`/Users/asdarsaid/JSI/client`) memanggilnya → cocokkan ke controller di `/Users/asdarsaid/JSI/api` → kalau ragu, tes live via curl ke `https://api.demokrasikreatif.org/...` → laporkan ke user bagian yang tidak cocok/tidak ketemu SEBELUM lanjut implementasi → update `api-standards.md`. DPT & Hasil Rekap tipe DPR RI sudah diverifikasi & wired (2026-08-23) — DPRD Provinsi/Kabupaten/DPD Hasil Rekap masih belum, jangan asumsikan kontraknya dari training data atau dari observasi web semata.
 
 ---
 
