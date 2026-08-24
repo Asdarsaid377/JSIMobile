@@ -1,3 +1,4 @@
+import { apiClient } from "@/lib/api/client";
 import { isMockApiEnabled, mockDelay } from "@/lib/api/mock";
 import type {
   BudgetPosRealisasi,
@@ -6,15 +7,50 @@ import type {
   BudgetTransaction,
   BudgetTrendPoint,
   CreateBudgetTransactionInput,
+  UpdateBudgetTransactionStatusInput,
+  UpsertBudgetPlafonInput,
 } from "@/types/budgeting";
 
-// Belum ada endpoint/schema apapun untuk Budgeting Kampanye (fitur baru, di luar
-// build-plan awal, item #3 "saran konsultan politik"). Pola mock service
-// STANDAR (array in-memory), cabang non-mock sengaja throw, bukan menebak
-// kontrak (CLAUDE.md Aturan #6) — sama pola dengan services/rivalcaleg.ts,
-// services/saksi.ts, services/realcount.ts.
-const ENDPOINT_NOT_CONFIRMED =
-  "Endpoint Budgeting Kampanye belum ada — fitur ini masih UI + mock. Aktifkan EXPO_PUBLIC_USE_MOCK_API=true untuk demo.";
+// Modul backend `budgeting` (src/budgeting/) sekarang ADA — dikonfirmasi
+// 2026-08-24 baca budgeting.controller.ts/service.ts/dto + live curl ke
+// backend dev lokal (endpoint balas 401 Unauthorized tanpa token, BUKAN 404 —
+// artinya route ADA & di-guard AuthGuard, konsisten dengan module lain).
+// summary/pos/trend sudah wired. transactions (list+create) SENGAJA belum
+// diwiring — lihat ENDPOINT_TRANSAKSI_BELUM_LENGKAP di bawah.
+const BULAN_LABEL = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
+/** "YYYY-MM" bulan berjalan — mobile tidak punya month-picker, jadi scope
+ * "bulan" SELALU merujuk bulan berjalan (judgment call, lihat progress-tracker.md). */
+function currentPeriode(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** GET /budgeting/summary|pos|trend butuh `periode` HANYA kalau scope=bulan
+ * (BudgetScopeDto @ValidateIf) — untuk scope=total, `periode` diabaikan
+ * backend, jadi tidak dikirim sama sekali. */
+function scopeParams(scope: BudgetScope): { scope: BudgetScope; periode?: string } {
+  return scope === "bulan" ? { scope, periode: currentPeriode() } : { scope };
+}
+
+/** Backend summary/pos TIDAK balas scope/scopeLabel (cuma angka) — dihitung
+ * di mobile dari periode "YYYY-MM" yang sama yang dikirim di query. */
+function scopeLabel(scope: BudgetScope, periode?: string): string {
+  if (scope === "total") return "Keseluruhan";
+  const [year, month] = (periode ?? currentPeriode()).split("-").map(Number);
+  return `${BULAN_LABEL[month - 1]} ${year}`;
+}
+
+// GET/POST /budgeting/transactions sekarang nge-include relasi `user` (fix
+// backend 2026-08-24, dikonfirmasi baca ulang budgeting.service.ts: kedua
+// method pakai `include: [{ model: TimsesModel, as: 'user', attributes:
+// ['id','namaLengkap'] }]`, alias 'user' cocok dengan nama property
+// `@BelongsTo` di model — findTransactions() include langsung di
+// findAndCountAll(), createTransaction() include via `.reload()` sesudah
+// create). List+create transaksi sekarang WIRED penuh, lihat mapBudgetTransaction.
 
 // Ringkasan/realisasi-pos/tren adalah angka demo STATIS per scope — persis
 // seperti di context/designs/budgeting-kampanye.dc.html. SENGAJA tidak
@@ -124,9 +160,28 @@ async function fetchBudgetSummaryMock(scope: BudgetScope): Promise<BudgetSummary
   return SUMMARY_BY_SCOPE[scope];
 }
 
+type BudgetSummaryApiRecord = {
+  total: number;
+  used: number;
+  left: number;
+  usedPct: number;
+  txCount: number;
+  overCount: number;
+};
+
 export async function fetchBudgetSummary(scope: BudgetScope): Promise<BudgetSummary> {
   if (isMockApiEnabled()) return fetchBudgetSummaryMock(scope);
-  throw new Error(ENDPOINT_NOT_CONFIRMED);
+  try {
+    const params = scopeParams(scope);
+    const { data: body } = await apiClient.get<{ message: string; data: BudgetSummaryApiRecord }>(
+      "/budgeting/summary",
+      { params },
+    );
+    return { scope, scopeLabel: scopeLabel(scope, params.periode), ...body.data };
+  } catch (error) {
+    console.error("[services/budgeting/fetchBudgetSummary]", error);
+    throw new Error("Gagal memuat ringkasan anggaran. Coba lagi.");
+  }
 }
 
 async function fetchBudgetPosMock(scope: BudgetScope): Promise<BudgetPosRealisasi[]> {
@@ -136,7 +191,18 @@ async function fetchBudgetPosMock(scope: BudgetScope): Promise<BudgetPosRealisas
 
 export async function fetchBudgetPos(scope: BudgetScope): Promise<BudgetPosRealisasi[]> {
   if (isMockApiEnabled()) return fetchBudgetPosMock(scope);
-  throw new Error(ENDPOINT_NOT_CONFIRMED);
+  try {
+    // Shape balik ({name,plafon,used,pct}) sudah cocok 1:1 dengan
+    // BudgetPosRealisasi — tidak perlu mapping field.
+    const { data: body } = await apiClient.get<{ message: string; data: BudgetPosRealisasi[] }>(
+      "/budgeting/pos",
+      { params: scopeParams(scope) },
+    );
+    return body.data;
+  } catch (error) {
+    console.error("[services/budgeting/fetchBudgetPos]", error);
+    throw new Error("Gagal memuat realisasi per pos anggaran. Coba lagi.");
+  }
 }
 
 async function fetchBudgetTrendMock(scope: BudgetScope): Promise<BudgetTrendPoint[]> {
@@ -144,9 +210,24 @@ async function fetchBudgetTrendMock(scope: BudgetScope): Promise<BudgetTrendPoin
   return TREND_BY_SCOPE[scope];
 }
 
+type BudgetTrendApiPoint = { label: string; amount: number };
+
 export async function fetchBudgetTrend(scope: BudgetScope): Promise<BudgetTrendPoint[]> {
   if (isMockApiEnabled()) return fetchBudgetTrendMock(scope);
-  throw new Error(ENDPOINT_NOT_CONFIRMED);
+  try {
+    // Backend cuma balas {label,amount} — heightPct (dipakai BudgetTrendChart
+    // untuk tinggi batang) dihitung di mobile, relatif ke titik amount tertinggi.
+    const { data: body } = await apiClient.get<{ message: string; data: BudgetTrendApiPoint[] }>(
+      "/budgeting/trend",
+      { params: scopeParams(scope) },
+    );
+    const points = body.data;
+    const maxAmount = Math.max(0, ...points.map((p) => p.amount));
+    return points.map((p) => ({ ...p, heightPct: maxAmount > 0 ? Math.round((p.amount / maxAmount) * 100) : 0 }));
+  } catch (error) {
+    console.error("[services/budgeting/fetchBudgetTrend]", error);
+    throw new Error("Gagal memuat tren pengeluaran. Coba lagi.");
+  }
 }
 
 async function fetchBudgetTransactionsMock(): Promise<BudgetTransaction[]> {
@@ -154,9 +235,51 @@ async function fetchBudgetTransactionsMock(): Promise<BudgetTransaction[]> {
   return [...mockBudgetTransactions].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
+type BudgetTransactionApiRecord = {
+  id: number;
+  pos: BudgetTransaction["pos"];
+  nominal: number;
+  keterangan: string;
+  status: BudgetTransaction["status"];
+  userId: number;
+  createdAt: string;
+  user: { id: number; namaLengkap: string | null } | null;
+};
+
+function mapBudgetTransaction(record: BudgetTransactionApiRecord): BudgetTransaction {
+  return {
+    id: record.id,
+    title: record.keterangan,
+    pos: record.pos,
+    nominal: record.nominal,
+    // Fallback ID kalau relasi `user` null (mis. akun pembuat sudah dihapus) —
+    // seharusnya tidak pernah terjadi normal (userId NOT NULL, diisi dari JWT).
+    oleh: record.user?.namaLengkap ?? `Pengguna #${record.userId}`,
+    status: record.status,
+    createdAt: record.createdAt,
+  };
+}
+
+// "Pengeluaran Terbaru" di desain cuma menampilkan daftar ringkas, bukan
+// riwayat penuh — mobile belum punya UI pagination/infinite-scroll untuk
+// section ini (beda dari DPT), jadi cukup ambil 1 halaman pertama dengan
+// limit lebih besar dari default backend (10). Judgment call, bukan
+// pertanyaan yang dijawab eksplisit user — revisit kalau nanti perlu lihat
+// riwayat lebih lama.
+const RECENT_TRANSACTIONS_LIMIT = 20;
+
 export async function fetchBudgetTransactions(): Promise<BudgetTransaction[]> {
   if (isMockApiEnabled()) return fetchBudgetTransactionsMock();
-  throw new Error(ENDPOINT_NOT_CONFIRMED);
+  try {
+    const { data: body } = await apiClient.get<{ message: string; data: BudgetTransactionApiRecord[] }>(
+      "/budgeting/transactions",
+      { params: { page: 1, limit: RECENT_TRANSACTIONS_LIMIT } },
+    );
+    return body.data.map(mapBudgetTransaction);
+  } catch (error) {
+    console.error("[services/budgeting/fetchBudgetTransactions]", error);
+    throw new Error("Gagal memuat daftar transaksi. Coba lagi.");
+  }
 }
 
 // Transaksi baru selalu masuk sebagai "Menunggu" — tidak ada UI approve/tolak
@@ -182,5 +305,62 @@ async function createBudgetTransactionMock(input: CreateBudgetTransactionInput, 
 
 export async function createBudgetTransaction(input: CreateBudgetTransactionInput, oleh: string): Promise<BudgetTransaction> {
   if (isMockApiEnabled()) return createBudgetTransactionMock(input, oleh);
-  throw new Error(ENDPOINT_NOT_CONFIRMED);
+  try {
+    // userId TIDAK dikirim di body — backend ambil dari JWT (@User() decorator).
+    // Response sudah include relasi `user` (backend fix 2026-08-24), jadi
+    // `oleh` di sini (nama user sesi aktif, dari useAuth()) cuma dipakai
+    // mock — real branch selalu pakai nama dari response server sebagai
+    // sumber kebenaran (bisa beda kalau session lama, meski jarang terjadi).
+    const { data: body } = await apiClient.post<{ message: string; data: BudgetTransactionApiRecord }>(
+      "/budgeting/transactions",
+      input,
+    );
+    return mapBudgetTransaction(body.data);
+  } catch (error) {
+    console.error("[services/budgeting/createBudgetTransaction]", error);
+    throw new Error("Gagal menyimpan transaksi. Coba lagi.");
+  }
+}
+
+// Set Plafon Anggaran (admin-only, screen tanpa referensi desain — izin
+// eksplisit user 2026-08-24, lihat progress-tracker.md Decisions).
+async function upsertBudgetPlafonMock({ scope, pos, nominal }: UpsertBudgetPlafonInput): Promise<void> {
+  await mockDelay();
+  const row = POS_BY_SCOPE[scope].find((p) => p.name === pos);
+  if (row) {
+    row.plafon = nominal;
+    row.pct = row.plafon > 0 ? Math.round((row.used / row.plafon) * 100) : 0;
+  }
+}
+
+export async function upsertBudgetPlafon(input: UpsertBudgetPlafonInput): Promise<void> {
+  if (isMockApiEnabled()) return upsertBudgetPlafonMock(input);
+  try {
+    // `periode` backend: "YYYY-MM" untuk scope=bulan (bulan berjalan, sama
+    // seperti scopeParams()), literal "TOTAL" untuk scope=total — lihat
+    // UpsertBudgetPlafonDto (`PERIODE_PLAFON_REGEX`) di backend.
+    const periode = input.scope === "total" ? "TOTAL" : currentPeriode();
+    await apiClient.post("/budgeting/plafon", { periode, pos: input.pos, nominal: input.nominal });
+  } catch (error) {
+    console.error("[services/budgeting/upsertBudgetPlafon]", error);
+    throw new Error("Gagal menyimpan plafon. Coba lagi.");
+  }
+}
+
+// Approval transaksi (admin-only, tombol Setujui/Tolak di BudgetTransactionRow
+// — screen tanpa referensi desain, izin eksplisit user 2026-08-24, lihat
+// progress-tracker.md Decisions).
+async function updateBudgetTransactionStatusMock({ id, status }: UpdateBudgetTransactionStatusInput): Promise<void> {
+  await mockDelay();
+  mockBudgetTransactions = mockBudgetTransactions.map((tx) => (tx.id === id ? { ...tx, status } : tx));
+}
+
+export async function updateBudgetTransactionStatus(input: UpdateBudgetTransactionStatusInput): Promise<void> {
+  if (isMockApiEnabled()) return updateBudgetTransactionStatusMock(input);
+  try {
+    await apiClient.patch(`/budgeting/transactions/${input.id}/status`, { status: input.status });
+  } catch (error) {
+    console.error("[services/budgeting/updateBudgetTransactionStatus]", error);
+    throw new Error("Gagal memperbarui status transaksi. Coba lagi.");
+  }
 }

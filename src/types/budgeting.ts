@@ -67,3 +67,22 @@ export type CreateBudgetTransactionInput = {
   nominal: number;
   keterangan: string;
 };
+
+// Set Plafon Anggaran (admin-only) — TIDAK ada di canvas asli, dibangun tanpa
+// referensi visual atas izin eksplisit user (2026-08-24, lihat
+// progress-tracker.md Decisions). `periode` backend ("YYYY-MM" atau literal
+// "TOTAL") diturunkan dari `scope` di service, bukan dikirim dari screen.
+export type UpsertBudgetPlafonInput = {
+  scope: BudgetScope;
+  pos: BudgetPosName;
+  nominal: number;
+};
+
+// Approval transaksi (admin-only) — juga TIDAK ada di canvas asli (pill
+// status di sana read-only), izin eksplisit user (2026-08-24). Backend
+// (`UpdateBudgetTransactionStatusDto`) sengaja tidak menerima "Menunggu" —
+// itu cuma default saat transaksi dibuat, bukan status yang bisa di-set balik.
+export type UpdateBudgetTransactionStatusInput = {
+  id: number;
+  status: Extract<BudgetTransactionStatus, "Disetujui" | "Ditolak">;
+};

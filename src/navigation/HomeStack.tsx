@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import { BudgetPlafonScreen } from "@/screens/budgeting/BudgetPlafonScreen";
 import { BudgetTransactionFormScreen } from "@/screens/budgeting/BudgetTransactionFormScreen";
 import { BudgetingKampanyeScreen } from "@/screens/budgeting/BudgetingKampanyeScreen";
 import { CustomerServiceScreen } from "@/screens/home/CustomerServiceScreen";
@@ -35,6 +36,7 @@ export type HomeStackParamList = {
   };
   BudgetingKampanye: undefined;
   BudgetTransactionForm: undefined;
+  BudgetPlafon: undefined;
   TokohMasyarakat: undefined;
   // Component sama persis dipakai di DptStack.TokohForm (dari icon bintang
   // DptCard, params bawa dptRecord) — lihat TokohFormScreen.tsx.
@@ -76,6 +78,11 @@ export function HomeStack() {
         name="BudgetTransactionForm"
         component={BudgetTransactionFormScreen}
         options={{ title: "Catat Pengeluaran" }}
+      />
+      <Stack.Screen
+        name="BudgetPlafon"
+        component={BudgetPlafonScreen}
+        options={{ title: "Set Plafon Anggaran" }}
       />
       <Stack.Screen
         name="TokohMasyarakat"
