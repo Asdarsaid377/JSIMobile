@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { IsuAspirasiCard } from "@/components/isuaspirasi/IsuAspirasiCard";
@@ -10,8 +12,9 @@ import { IsuKategoriRow } from "@/components/isuaspirasi/IsuKategoriRow";
 import { IsuPetaWilayahRow } from "@/components/isuaspirasi/IsuPetaWilayahRow";
 import { IsuSummaryCard } from "@/components/isuaspirasi/IsuSummaryCard";
 import { Button } from "@/components/ui/Button";
-import { useIsuAspirasiSnapshot } from "@/hooks/useIsuAspirasi";
+import { useIsuAspirasiSnapshot, useUpdateIsuAspirasi } from "@/hooks/useIsuAspirasi";
 import { useHideTabBar } from "@/hooks/useHideTabBar";
+import type { HomeStackParamList } from "@/navigation/HomeStack";
 import type { IsuAspirasi } from "@/types/isuaspirasi";
 
 type IsuTab = "ringkasan" | "peta" | "aspirasi";
@@ -22,20 +25,20 @@ const TABS: { key: IsuTab; label: string }[] = [
   { key: "aspirasi", label: "Aspirasi" },
 ];
 
-function handleNotImplemented(): void {
-  Alert.alert("Segera hadir", "Fitur ini akan datang.");
-}
-
 // Referensi: artboard "15 · ISU & ASPIRASI WARGA (SEKUNDER — DRAWER)" di
 // project Claude Design user ("Desain Mobile JSI Dashboard",
 // 160ea937-2f8a-4ff4-9977-f8bc398c90a0), dibaca via DesignSync 2026-08-22.
-// Permintaan eksplisit user: "Generate UI nya saja dulu tidak apa apa, nanti
-// saya buatkan API nya" — screen ini SENGAJA read-only, tidak ada mutation
-// sungguhan (lihat services/isuaspirasi.ts & IsuAspirasiDetailSheet.tsx untuk
-// detail, pola sama AntiFraudScreen). Fitur baru murni mobile — TIDAK ADA
-// modul ini di backend manapun (CLAUDE.md Aturan #6).
+// Awalnya SENGAJA read-only ("Generate UI nya saja dulu ... nanti saya
+// buatkan API nya") — modul backend `isuaspirasi` sekarang ADA & WIRED PENUH
+// (2026-08-24, lihat api-standards.md § Isu & Aspirasi Warga). 2 aksi di
+// IsuAspirasiDetailSheet (Tandai Ditindak/Jadikan Materi) + "+ Catat Aspirasi
+// Warga" + "+ Tambah Usulan" (CRUD IsuJanji) SEKARANG mutation sungguhan —
+// 2 route form terakhir (IsuAspirasiForm/IsuJanjiForm) dibangun TANPA
+// referensi visual (izin eksplisit user, Aturan #1).
 export function IsuAspirasiScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const snapshotQuery = useIsuAspirasiSnapshot();
+  const updateMutation = useUpdateIsuAspirasi();
   useHideTabBar();
 
   const [tab, setTab] = useState<IsuTab>("ringkasan");
@@ -68,17 +71,17 @@ export function IsuAspirasiScreen() {
 
   function handleTandaiDitindak(item: IsuAspirasi): void {
     setSheetItem(null);
-    Alert.alert(
-      "Ditandai ditindak",
-      `Aspirasi dari ${item.warga} ditandai ditindak di layar ini saja — belum tersimpan ke server (API menyusul).`,
+    updateMutation.mutate(
+      { id: item.id, status: "Ditindak" },
+      { onError: (error) => Alert.alert("Gagal menandai ditindak", error.message) },
     );
   }
 
   function handleJadikanMateri(item: IsuAspirasi): void {
     setSheetItem(null);
-    Alert.alert(
-      "Ditandai jadi materi",
-      `Aspirasi dari ${item.warga} ditandai jadi materi kampanye di layar ini saja — belum tersimpan ke server (API menyusul).`,
+    updateMutation.mutate(
+      { id: item.id, dijadikanMateri: true },
+      { onError: (error) => Alert.alert("Gagal menandai jadi materi", error.message) },
     );
   }
 
@@ -150,15 +153,21 @@ export function IsuAspirasiScreen() {
             </View>
 
             <View className="gap-sm">
-              <Text className="text-body-lg font-semibold text-text-primary">Usulan Materi Kampanye</Text>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-body-lg font-semibold text-text-primary">Usulan Materi Kampanye</Text>
+                <Pressable onPress={() => navigation.navigate("IsuJanjiForm", {})}>
+                  <Text className="text-label-md font-semibold text-accent">+ Tambah Usulan</Text>
+                </Pressable>
+              </View>
               <View className="gap-sm">
                 {janji.map((item) => (
                   <IsuJanjiCard
-                    key={item.janji}
+                    key={item.id}
                     janji={item.janji}
                     dampak={item.dampak}
                     dasar={item.dasar}
                     wilayah={item.wilayah}
+                    onPress={() => navigation.navigate("IsuJanjiForm", { record: item })}
                   />
                 ))}
               </View>
@@ -214,7 +223,11 @@ export function IsuAspirasiScreen() {
       </ScrollView>
 
       <View className="border-t border-border bg-surface p-md">
-        <Button label="+ Catat Aspirasi Warga" variant="primary" onPress={handleNotImplemented} />
+        <Button
+          label="+ Catat Aspirasi Warga"
+          variant="primary"
+          onPress={() => navigation.navigate("IsuAspirasiForm")}
+        />
       </View>
 
       <IsuAspirasiDetailSheet

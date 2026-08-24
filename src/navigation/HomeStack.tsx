@@ -5,35 +5,33 @@ import { BudgetTransactionFormScreen } from "@/screens/budgeting/BudgetTransacti
 import { BudgetingKampanyeScreen } from "@/screens/budgeting/BudgetingKampanyeScreen";
 import { CustomerServiceScreen } from "@/screens/home/CustomerServiceScreen";
 import { HomeScreen } from "@/screens/home/HomeScreen";
-import { RivalAssessmentFormScreen } from "@/screens/rivalcaleg/RivalAssessmentFormScreen";
-import { RivalCalegDetailScreen } from "@/screens/rivalcaleg/RivalCalegDetailScreen";
+import { RivalAktivitasFormScreen } from "@/screens/rivalcaleg/RivalAktivitasFormScreen";
 import { RivalCalegFormScreen } from "@/screens/rivalcaleg/RivalCalegFormScreen";
-import { RivalCalegListScreen } from "@/screens/rivalcaleg/RivalCalegListScreen";
+import type { RivalCalegFormParams } from "@/screens/rivalcaleg/RivalCalegFormScreen";
+import { RivalCalegScreen } from "@/screens/rivalcaleg/RivalCalegScreen";
+import { RivalWilayahFormScreen } from "@/screens/rivalcaleg/RivalWilayahFormScreen";
+import type { RivalWilayahFormParams } from "@/screens/rivalcaleg/RivalWilayahFormScreen";
 import { AntiFraudScreen } from "@/screens/antifraud/AntiFraudScreen";
+import { IsuAspirasiFormScreen } from "@/screens/isuaspirasi/IsuAspirasiFormScreen";
 import { IsuAspirasiScreen } from "@/screens/isuaspirasi/IsuAspirasiScreen";
+import { IsuJanjiFormScreen } from "@/screens/isuaspirasi/IsuJanjiFormScreen";
+import type { IsuJanjiFormParams } from "@/screens/isuaspirasi/IsuJanjiFormScreen";
 import { QuickCountScreen } from "@/screens/quickcount/QuickCountScreen";
 import { LacakRelawanScreen } from "@/screens/tracking/LacakRelawanScreen";
 import { TimsesScreen } from "@/screens/timses/TimsesScreen";
 import { TokohFormScreen } from "@/screens/tokoh/TokohFormScreen";
 import type { TokohFormParams } from "@/screens/tokoh/TokohFormScreen";
 import { TokohMasyarakatScreen } from "@/screens/tokoh/TokohMasyarakatScreen";
-import type { AncamanLevel } from "@/types/rivalcaleg";
 
 export type HomeStackParamList = {
   Home: undefined;
   Timses: undefined;
   LacakRelawan: undefined;
   CustomerService: undefined;
-  RivalCalegList: undefined;
-  RivalCalegForm: undefined;
-  RivalCalegDetail: { rivalCalegId: number; namaLengkap: string };
-  RivalAssessmentForm: {
-    rivalCalegId: number;
-    kecamatan?: string;
-    desa?: string;
-    levelAncaman?: AncamanLevel;
-    catatan?: string;
-  };
+  RivalCaleg: undefined;
+  RivalCalegForm: RivalCalegFormParams | undefined;
+  RivalWilayahForm: RivalWilayahFormParams | undefined;
+  RivalAktivitasForm: undefined;
   BudgetingKampanye: undefined;
   BudgetTransactionForm: undefined;
   BudgetPlafon: undefined;
@@ -44,6 +42,8 @@ export type HomeStackParamList = {
   QuickCount: undefined;
   AntiFraud: undefined;
   IsuAspirasi: undefined;
+  IsuAspirasiForm: undefined;
+  IsuJanjiForm: IsuJanjiFormParams | undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -61,13 +61,21 @@ export function HomeStack() {
       <Stack.Screen name="Timses" component={TimsesScreen} options={{ title: "Timses" }} />
       <Stack.Screen name="LacakRelawan" component={LacakRelawanScreen} options={{ title: "Lacak Relawan" }} />
       <Stack.Screen name="CustomerService" component={CustomerServiceScreen} options={{ title: "Customer Service" }} />
-      <Stack.Screen name="RivalCalegList" component={RivalCalegListScreen} options={{ title: "Rival Caleg" }} />
-      <Stack.Screen name="RivalCalegForm" component={RivalCalegFormScreen} options={{ title: "Tambah Rival Caleg" }} />
-      <Stack.Screen name="RivalCalegDetail" component={RivalCalegDetailScreen} options={{ title: "Rival Caleg" }} />
+      <Stack.Screen name="RivalCaleg" component={RivalCalegScreen} options={{ title: "Deteksi Rival Caleg" }} />
       <Stack.Screen
-        name="RivalAssessmentForm"
-        component={RivalAssessmentFormScreen}
-        options={{ title: "Assessment Wilayah" }}
+        name="RivalCalegForm"
+        component={RivalCalegFormScreen}
+        options={{ title: "Rival Caleg" }}
+      />
+      <Stack.Screen
+        name="RivalWilayahForm"
+        component={RivalWilayahFormScreen}
+        options={{ title: "Penguasaan Wilayah" }}
+      />
+      <Stack.Screen
+        name="RivalAktivitasForm"
+        component={RivalAktivitasFormScreen}
+        options={{ title: "Lapor Aktivitas Rival" }}
       />
       <Stack.Screen
         name="BudgetingKampanye"
@@ -100,6 +108,16 @@ export function HomeStack() {
         name="IsuAspirasi"
         component={IsuAspirasiScreen}
         options={{ title: "Isu & Aspirasi Warga" }}
+      />
+      <Stack.Screen
+        name="IsuAspirasiForm"
+        component={IsuAspirasiFormScreen}
+        options={{ title: "Catat Aspirasi Warga" }}
+      />
+      <Stack.Screen
+        name="IsuJanjiForm"
+        component={IsuJanjiFormScreen}
+        options={{ title: "Usulan Materi Kampanye" }}
       />
     </Stack.Navigator>
   );

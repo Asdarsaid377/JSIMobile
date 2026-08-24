@@ -1,0 +1,160 @@
+<!-- ============ 16. DETEKSI RIVAL CALEG ============ -->
+<div style="display:flex;flex-direction:column;gap:14px">
+  <div style="font:700 13px Inter;color:#64748B;letter-spacing:.02em">16 · DETEKSI RIVAL CALEG (SEKUNDER — DRAWER)</div>
+  <div style="width:390px;background:#1E293B;border-radius:46px;padding:14px;box-shadow:0 20px 50px rgba(15,23,42,.25)">
+    <div style="background:#F8FAFC;border-radius:34px;height:844px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+      <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font:600 14px Inter;color:#0F172A;flex-shrink:0">
+        <span>9:41</span>
+        <div style="width:18px;height:10px;border:1.5px solid #0F172A;border-radius:2px;position:relative"><div style="position:absolute;inset:1.5px;width:11px;background:#0F172A;border-radius:1px"></div></div>
+      </div>
+      <div style="padding:6px 20px 10px;display:flex;flex-direction:column;gap:10px;flex-shrink:0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:10px"><span style="font:600 22px Inter;color:#334155">‹</span><span style="font:800 18px Inter;color:#0F172A">Deteksi Rival Caleg</span></div>
+          <button style="width:36px;height:36px;border:1px solid #E2E8F0;background:#fff;border-radius:10px;font:600 14px Inter;color:#334155">⤓</button>
+        </div>
+        <span style="font:400 11px Inter;color:#64748B">Dapil Jabar I · dianalisis dari data D2D, tokoh, dan rekap 2024</span>
+        <div style="display:flex;background:#F1F5F9;border-radius:11px;padding:3px">
+          <button onClick="{{ setRivalPeta }}" style="flex:1;border:none;border-radius:9px;padding:8px;font:700 11.5px Inter;background:{{ rivalPetaBg }};color:{{ rivalPetaFg }}">Kekuatan</button>
+          <button onClick="{{ setRivalDaftar }}" style="flex:1;border:none;border-radius:9px;padding:8px;font:700 11.5px Inter;background:{{ rivalDaftarBg }};color:{{ rivalDaftarFg }}">Daftar Rival</button>
+          <button onClick="{{ setRivalAktivitas }}" style="flex:1;border:none;border-radius:9px;padding:8px;font:700 11.5px Inter;background:{{ rivalAktivitasBg }};color:{{ rivalAktivitasFg }}">Aktivitas</button>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:0 20px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="background:#1E293B;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <span style="font:500 11px Inter;color:#94A3B8">Rival terpetakan</span>
+              <span style="font:800 24px Inter;color:#fff">14 caleg</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+              <span style="font:500 11px Inter;color:#94A3B8">Posisi kita</span>
+              <span style="font:700 15px Inter;color:#4ADE80">Peringkat 2</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;background:rgba(255,255,255,.08);border-radius:11px;padding:9px"><div style="font:700 14px Inter;color:#FCA5A5">3</div><div style="font:500 9px Inter;color:#94A3B8">Ancaman tinggi</div></div>
+            <div style="flex:1;background:rgba(255,255,255,.08);border-radius:11px;padding:9px"><div style="font:700 14px Inter;color:#FCD34D">5</div><div style="font:500 9px Inter;color:#94A3B8">Wilayah bentrok</div></div>
+            <div style="flex:1;background:rgba(255,255,255,.08);border-radius:11px;padding:9px"><div style="font:700 14px Inter;color:#93C5FD">2,1%</div><div style="font:500 9px Inter;color:#94A3B8">Selisih ke #1</div></div>
+          </div>
+        </div>
+
+        <sc-if value="{{ rivalIsPeta }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 14px Inter;color:#0F172A">Estimasi Kekuatan Suara</span>
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:13px">
+            <sc-for list="{{ rivalKekuatan }}" as="r" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+                  <span style="font:{{ r.weight }} 11.5px Inter;color:{{ r.nameColor }};min-width:0">{{ r.name }}</span>
+                  <span style="font:700 11.5px Inter;color:{{ r.color }};flex-shrink:0">{{ r.estimasi }} · {{ r.pctStr }}</span>
+                </div>
+                <div style="height:9px;background:#F1F5F9;border-radius:99px;overflow:hidden"><div style="height:100%;border-radius:99px;background:{{ r.color }};width:{{ r.barStr }}"></div></div>
+                <span style="font:400 10px Inter;color:#94A3B8">{{ r.basis }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="border-radius:16px;overflow:hidden;border:1px solid #E2E8F0">
+          <div style="height:190px;position:relative;background:repeating-linear-gradient(45deg,#E2E8F0,#E2E8F0 2px,#EDF2F7 2px,#EDF2F7 14px)">
+            <div style="position:absolute;top:15%;left:12%;width:34%;height:32%;background:rgba(59,130,246,.34);border:1.5px solid #3B82F6;border-radius:8px;display:flex;align-items:center;justify-content:center"><span style="font:700 9px Inter;color:#1D4ED8;background:#fff;padding:3px 6px;border-radius:5px">Kita unggul</span></div>
+            <div style="position:absolute;top:17%;left:52%;width:32%;height:28%;background:rgba(220,38,38,.32);border:1.5px solid #DC2626;border-radius:8px;display:flex;align-items:center;justify-content:center"><span style="font:700 9px Inter;color:#991B1B;background:#fff;padding:3px 6px;border-radius:5px">Rival kuat</span></div>
+            <div style="position:absolute;top:55%;left:14%;width:30%;height:30%;background:rgba(245,158,11,.32);border:1.5px solid #F59E0B;border-radius:8px;display:flex;align-items:center;justify-content:center"><span style="font:700 9px Inter;color:#92400E;background:#fff;padding:3px 6px;border-radius:5px">Bentrok</span></div>
+            <div style="position:absolute;top:53%;left:52%;width:32%;height:32%;background:rgba(245,158,11,.32);border:1.5px solid #F59E0B;border-radius:8px;display:flex;align-items:center;justify-content:center"><span style="font:700 9px Inter;color:#92400E;background:#fff;padding:3px 6px;border-radius:5px">Bentrok</span></div>
+            <div style="position:absolute;bottom:8px;left:10px;background:#fff;border-radius:8px;padding:6px 9px;font:600 9px Inter;color:#64748B;box-shadow:0 2px 8px rgba(0,0,0,.08)">Peta penguasaan wilayah</div>
+          </div>
+          <div style="background:#fff;padding:14px;display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ rivalWilayah }}" as="w" hint-placeholder-count="4">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+                <div style="display:flex;align-items:center;gap:9px;min-width:0">
+                  <div style="width:10px;height:10px;border-radius:3px;background:{{ w.color }};flex-shrink:0"></div>
+                  <div style="display:flex;flex-direction:column;gap:1px">
+                    <span style="font:700 12px Inter;color:#0F172A">{{ w.name }}</span>
+                    <span style="font:400 10px Inter;color:#94A3B8">Penantang: {{ w.rival }}</span>
+                  </div>
+                </div>
+                <span style="font:700 10px Inter;padding:4px 9px;border-radius:999px;background:{{ w.bg }};color:{{ w.fg }};flex-shrink:0">{{ w.status }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ rivalIsDaftar }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:11px 14px;font:400 13px Inter;color:#94A3B8">Cari nama caleg atau partai...</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ rivalList }}" as="r" hint-placeholder-count="5">
+            <div onClick="{{ r.openSheet }}" style="background:#fff;border:1px solid {{ r.border }};border-radius:16px;padding:14px;display:flex;gap:12px;align-items:flex-start">
+              <div style="width:42px;height:42px;border-radius:12px;background:#F1F5F9;color:#475569;display:flex;align-items:center;justify-content:center;font:700 13px Inter;flex-shrink:0">{{ r.initials }}</div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                  <span style="font:700 13.5px Inter;color:#0F172A">{{ r.name }}</span>
+                  <span style="font:700 9.5px Inter;padding:4px 8px;border-radius:999px;background:{{ r.bg }};color:{{ r.fg }};flex-shrink:0">{{ r.ancaman }}</span>
+                </div>
+                <span style="font:600 11px Inter;color:#3B82F6">{{ r.partai }} · nomor urut {{ r.urut }}</span>
+                <span style="font:400 11px Inter;color:#334155">Basis: {{ r.basis }}</span>
+                <span style="font:400 10.5px Inter;color:#94A3B8">Est. {{ r.estimasi }} suara · bentrok di {{ r.bentrok }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ rivalIsAktivitas }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 14px Inter;color:#0F172A">Aktivitas Rival Terdeteksi</span>
+          <span style="font:400 10.5px Inter;color:#94A3B8">Dilaporkan relawan di lapangan · 7 hari terakhir</span>
+          <sc-for list="{{ rivalAktivitasList }}" as="a" hint-placeholder-count="5">
+            <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:7px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                <span style="font:700 12.5px Inter;color:#0F172A;flex:1;min-width:0">{{ a.rival }}</span>
+                <span style="font:700 9.5px Inter;padding:4px 8px;border-radius:999px;background:{{ a.bg }};color:{{ a.fg }};flex-shrink:0">{{ a.jenis }}</span>
+              </div>
+              <span style="font:400 11.5px Inter;color:#334155;line-height:1.45">{{ a.deskripsi }}</span>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font:400 10px Inter;color:#94A3B8">{{ a.wilayah }} · {{ a.tanggal }}</span>
+                <span style="font:600 10px Inter;color:#3B82F6">Lapor: {{ a.pelapor }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#FEF3C7;border-radius:14px;padding:13px 14px;display:flex;gap:10px;align-items:flex-start">
+          <div style="width:9px;height:9px;border-radius:50%;background:#D97706;margin-top:4px;flex-shrink:0"></div>
+          <span style="font:400 11px Inter;color:#92400E;line-height:1.45">Laporan aktivitas rival hanya untuk analisis internal. Dugaan pelanggaran pemilu diteruskan ke tim hukum, bukan dipublikasikan.</span>
+        </div>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ rivalSheet }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(15,23,42,.45);z-index:5" onClick="{{ closeRivalSheet }}"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:22px 22px 0 0;padding:10px 20px 26px;z-index:6;display:flex;flex-direction:column;gap:12px">
+          <div style="width:36px;height:4px;background:#E2E8F0;border-radius:99px;margin:0 auto 4px"></div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="width:54px;height:54px;border-radius:15px;background:#F1F5F9;color:#475569;display:flex;align-items:center;justify-content:center;font:700 17px Inter;flex-shrink:0">{{ rivalSheet.initials }}</div>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+              <span style="font:700 16px Inter;color:#0F172A">{{ rivalSheet.name }}</span>
+              <span style="font:500 11.5px Inter;color:#64748B">{{ rivalSheet.partai }} · no. urut {{ rivalSheet.urut }}</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;background:#F8FAFC;border-radius:12px;padding:10px;text-align:center"><div style="font:700 14px Inter;color:#0F172A">{{ rivalSheet.estimasi }}</div><div style="font:500 9px Inter;color:#64748B">Est. suara</div></div>
+            <div style="flex:1;background:#F8FAFC;border-radius:12px;padding:10px;text-align:center"><div style="font:700 14px Inter;color:#0F172A">{{ rivalSheet.suara2024 }}</div><div style="font:500 9px Inter;color:#64748B">Suara 2024</div></div>
+            <div style="flex:1;background:#F8FAFC;border-radius:12px;padding:10px;text-align:center"><div style="font:700 14px Inter;color:{{ rivalSheet.trenColor }}">{{ rivalSheet.tren }}</div><div style="font:500 9px Inter;color:#64748B">Tren</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:1px">
+            <div style="display:flex;justify-content:space-between;padding:10px 2px;border-bottom:1px solid #F1F5F9;gap:10px"><span style="font:500 11.5px Inter;color:#475569">Basis kekuatan</span><span style="font:600 11.5px Inter;color:#0F172A;text-align:right">{{ rivalSheet.basis }}</span></div>
+            <div style="display:flex;justify-content:space-between;padding:10px 2px;border-bottom:1px solid #F1F5F9;gap:10px"><span style="font:500 11.5px Inter;color:#475569">Wilayah bentrok</span><span style="font:600 11.5px Inter;color:#DC2626;text-align:right">{{ rivalSheet.bentrok }}</span></div>
+            <div style="display:flex;justify-content:space-between;padding:10px 2px;border-bottom:1px solid #F1F5F9;gap:10px"><span style="font:500 11.5px Inter;color:#475569">Tokoh yang berpihak</span><span style="font:600 11.5px Inter;color:#0F172A;text-align:right">{{ rivalSheet.tokoh }}</span></div>
+            <div style="display:flex;justify-content:space-between;padding:10px 2px;gap:10px"><span style="font:500 11.5px Inter;color:#475569">Isu yang diangkat</span><span style="font:600 11.5px Inter;color:#0F172A;text-align:right">{{ rivalSheet.isu }}</span></div>
+          </div>
+          <div style="background:#EFF6FF;border-radius:12px;padding:12px 13px;display:flex;flex-direction:column;gap:4px">
+            <span style="font:700 11px Inter;color:#1D4ED8">Rekomendasi strategi</span>
+            <span style="font:400 11px Inter;color:#1D4ED8;line-height:1.45">{{ rivalSheet.strategi }}</span>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+

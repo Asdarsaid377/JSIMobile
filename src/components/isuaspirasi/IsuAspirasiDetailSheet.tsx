@@ -16,10 +16,9 @@ type Props = {
 // jadi kotak polos `bg-surface-secondary` (mockup pakai tekstur garis diagonal
 // + pin marker — dekoratif, tidak ada asset/library map di project ini, sama
 // simplifikasi yang dipakai AntiFraudEvidenceSheet). Tombol "Tandai
-// Ditindak"/"Jadikan Materi" SENGAJA cuma tutup sheet + info singkat (TIDAK
-// ada mutation sungguhan) — permintaan eksplisit user "Generate UI nya saja
-// dulu tidak apa apa, nanti saya buatkan API nya", persis perilaku kode asli
-// mockup (`onClick="{{ closeIsuSheet }}"` SAMA untuk kedua tombol).
+// Ditindak"/"Jadikan Materi" SEKARANG mutation sungguhan (PATCH
+// /isuaspirasi/:id, lihat handleTandaiDitindak/handleJadikanMateri di
+// IsuAspirasiScreen.tsx) — sheet sendiri cuma terima callback, tidak berubah.
 export function IsuAspirasiDetailSheet({
 	item,
 	onClose,

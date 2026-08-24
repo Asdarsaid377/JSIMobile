@@ -19,6 +19,19 @@ const STATUS_TEXT_CLASS: Record<IsuAspirasiStatus, string> = {
   Selesai: "text-success",
 };
 
+// tanggal sekarang ISO (createdAt backend) — format di render, pola sama
+// formatTanggal lokal di RivalAktivitasCard/GotvCard/DtdoorCard (sengaja
+// tidak diabstraksi jadi util bersama, preseden yang sudah ada di project).
+function formatTanggal(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" }).format(
+      new Date(iso),
+    );
+  } catch {
+    return "-";
+  }
+}
+
 // Referensi artboard "15 · ISU & ASPIRASI WARGA" § tab "Aspirasi" — card
 // keluhan warga bergaya kutipan, badge kategori reuse `Badge` (semua kategori
 // diflatten ke 1 warna `accent` — bukan status alur kerja, pola sama
@@ -40,7 +53,7 @@ export function IsuAspirasiCard({ item, onPress }: Props) {
       <Text className="text-label-md text-text-secondary">&ldquo;{item.keluhan}&rdquo;</Text>
       <View className="flex-row items-center justify-between">
         <Text className="text-caption text-text-muted">
-          {item.relawan} · {item.tanggal}
+          {item.relawan} · {formatTanggal(item.tanggal)}
         </Text>
         <View className={`rounded-md px-sm py-xs ${STATUS_BG_CLASS[item.status]}`}>
           <Text className={`text-caption font-semibold ${STATUS_TEXT_CLASS[item.status]}`}>{item.status}</Text>

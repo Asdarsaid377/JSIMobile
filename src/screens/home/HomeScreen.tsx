@@ -271,7 +271,7 @@ export function HomeScreen() {
 							<HomeQuickAccessItem
 								icon="eye-outline"
 								label="Rival Caleg"
-								onPress={() => navigation.navigate("RivalCalegList")}
+								onPress={() => navigation.navigate("RivalCaleg")}
 							/>
 							<HomeQuickAccessItem
 								icon="wallet-outline"
