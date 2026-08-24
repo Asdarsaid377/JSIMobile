@@ -6,6 +6,8 @@ import { DptProvinsiScreen } from "@/screens/dpt/DptProvinsiScreen";
 import { DptRecordFormScreen } from "@/screens/dpt/DptRecordFormScreen";
 import { DtdoorFormScreen } from "@/screens/program/DtdoorFormScreen";
 import type { DtdoorFormParams } from "@/screens/program/DtdoorFormScreen";
+import { GotvFormScreen } from "@/screens/program/GotvFormScreen";
+import type { GotvFormParams } from "@/screens/program/GotvFormScreen";
 import { RealCountC1Screen } from "@/screens/realcount/RealCountC1Screen";
 import { TokohFormScreen } from "@/screens/tokoh/TokohFormScreen";
 import type { TokohFormParams } from "@/screens/tokoh/TokohFormScreen";
@@ -32,6 +34,11 @@ export type DptStackParamList = {
   // standalone, params undefined) — lihat DtdoorFormScreen.tsx untuk kenapa
   // param list-nya lokal & tidak terikat ke salah satu stack.
   DtdoorForm: DtdoorFormParams | undefined;
+  // Reuse langsung GotvFormScreen (src/screens/program/) — "Tandai ikut Social
+  // Event" (2026-08-24), di-push dari DptVoterActionSheet. Component sama
+  // persis dipakai di ProgramStack.GotvForm (entri standalone, params
+  // undefined) — pola identik DtdoorForm di atas.
+  GotvForm: GotvFormParams | undefined;
   // Reuse langsung TokohFormScreen (src/screens/tokoh/) — "Identifikasi Tokoh
   // Baru dari DPT" (2026-08-22), di-push dari icon bintang di DptCard. Component
   // sama persis dipakai di HomeStack.TokohForm (dari tombol "+ Identifikasi
@@ -84,6 +91,13 @@ export function DptStack() {
         component={DtdoorFormScreen}
         options={({ route }) => ({
           title: route.params?.dptRecord ? `D2D — ${route.params.dptRecord.nama}` : "Input Kunjungan Baru",
+        })}
+      />
+      <Stack.Screen
+        name="GotvForm"
+        component={GotvFormScreen}
+        options={({ route }) => ({
+          title: route.params?.dptRecord ? `SE — ${route.params.dptRecord.nama}` : "Input Kegiatan Baru",
         })}
       />
       <Stack.Screen

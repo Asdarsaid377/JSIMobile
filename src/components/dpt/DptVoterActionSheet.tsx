@@ -8,6 +8,7 @@ type Props = {
   record: DptRecord | null;
   onClose: () => void;
   onDtdoor: (record: DptRecord) => void;
+  onGotv: (record: DptRecord) => void;
   onEdit: (record: DptRecord) => void;
   onDelete: (record: DptRecord) => void;
 };
@@ -25,7 +26,12 @@ type Props = {
 // tidak ada glyph spesifik — sama situasinya dengan create-outline/trash-outline
 // di 2 row bawah). "Tandai ikut Social Event" TETAP di-skip — user cuma minta
 // integrasi Door To Door kali ini, bukan Social Event.
-export function DptVoterActionSheet({ record, onClose, onDtdoor, onEdit, onDelete }: Props) {
+// 2026-08-24 — "Tandai ikut Social Event" DIKEMBALIKAN (permintaan eksplisit
+// user, "Berikutnya" di progress-tracker.md, pola identik D2D di atas): icon
+// box `bg-success-soft`/ikon `megaphone-outline` (`#16a34a`) dipilih sendiri —
+// markup canvas untuk baris ini JUGA cuma kotak warna polos tanpa glyph
+// spesifik, situasi sama persis dengan baris D2D di atas.
+export function DptVoterActionSheet({ record, onClose, onDtdoor, onGotv, onEdit, onDelete }: Props) {
   return (
     <Modal visible={record !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable
@@ -48,6 +54,15 @@ export function DptVoterActionSheet({ record, onClose, onDtdoor, onEdit, onDelet
               <Ionicons name="walk-outline" size={16} color="#3b82f6" />
             </View>
             <Text className="text-label-md font-semibold text-text-primary">Tandai ikut Door To Door</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => record && onGotv(record)}
+            className="flex-row items-center gap-sm border-b border-surface-secondary py-sm active:opacity-80"
+          >
+            <View className="h-9 w-9 items-center justify-center rounded-md bg-success-soft">
+              <Ionicons name="megaphone-outline" size={16} color="#16a34a" />
+            </View>
+            <Text className="text-label-md font-semibold text-text-primary">Tandai ikut Social Event</Text>
           </Pressable>
           <Pressable
             onPress={() => record && onEdit(record)}

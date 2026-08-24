@@ -1,12 +1,51 @@
+import axios from "axios";
+
+import { apiClient } from "@/lib/api/client";
 import { isMockApiEnabled, mockDelay } from "@/lib/api/mock";
-import type { CreateTokohInput, Tokoh } from "@/types/tokoh";
+import type { CreateTokohInput, Tokoh, TokohPengaruh, TokohDukungan } from "@/types/tokoh";
 import { TOKOH_KATEGORI_OPTIONS } from "@/types/tokoh";
 
-// Pola mock service STANDAR (array in-memory, cabang non-mock throw) — sama
-// dengan rivalcaleg.ts/saksi.ts/realcount.ts. Tidak ada endpoint/schema apapun
-// untuk "Tokoh Masyarakat" (CLAUDE.md Aturan #6) — lihat types/tokoh.ts.
-const ENDPOINT_NOT_CONFIRMED =
-  "Endpoint Tokoh Masyarakat belum ada — fitur ini masih UI + mock. Aktifkan EXPO_PUBLIC_USE_MOCK_API=true untuk demo.";
+// Modul backend `tokoh` (src/tokoh/) sekarang ADA — dibuat user 2026-08-24
+// mengikuti spec yang diturunkan dari mock service ini (pola sama `budgeting`,
+// lihat progress-tracker.md Decisions). Dikonfirmasi baca tokoh.controller.ts/
+// service.ts/dto/model + live curl ke backend dev lokal (endpoint balas 401
+// Unauthorized tanpa token, BUKAN 404 — route ADA & di-guard AuthGuard).
+type TokohApiRecord = {
+  id: number;
+  nama: string;
+  kategoriId: number;
+  pengaruh: TokohPengaruh;
+  alamat: string;
+  kecamatan: string;
+  desa: string;
+  dukungan: TokohDukungan;
+  estimasiBasisMassa: number;
+  pekerjaan: string | null;
+  noTelpon: string | null;
+  createdAt: string;
+};
+
+// `kategoriLabel` TIDAK ada di response backend (cuma `kategoriId`, sama pola
+// dengan 5 nilai tetap di TOKOH_KATEGORI_OPTIONS yang sengaja tidak dibuatkan
+// tabel lookup terpisah di backend) — di-derive client-side, sama seperti mock.
+function mapTokoh(raw: TokohApiRecord): Tokoh {
+  const kategoriLabel = TOKOH_KATEGORI_OPTIONS.find((option) => option.id === raw.kategoriId)?.label ?? "Tokoh";
+  return {
+    id: raw.id,
+    nama: raw.nama,
+    kategoriId: raw.kategoriId,
+    kategoriLabel,
+    pengaruh: raw.pengaruh,
+    alamat: raw.alamat,
+    kecamatan: raw.kecamatan,
+    desa: raw.desa,
+    dukungan: raw.dukungan,
+    estimasiBasisMassa: raw.estimasiBasisMassa,
+    pekerjaan: raw.pekerjaan,
+    noTelpon: raw.noTelpon,
+    createdAt: raw.createdAt,
+  };
+}
 
 // 18 tokoh tersebar di 4 kelurahan yang sama dengan MOCK_DTDOOR/MOCK_TIMSES
 // (Cileunyi Kulon/Cinunuk/Cileunyi Wetan/Cimekar, Kec. Cileunyi) — konsisten
@@ -298,7 +337,13 @@ async function fetchTokohListMock(): Promise<Tokoh[]> {
 
 export async function fetchTokohList(): Promise<Tokoh[]> {
   if (isMockApiEnabled()) return fetchTokohListMock();
-  throw new Error(ENDPOINT_NOT_CONFIRMED);
+  try {
+    const { data: body } = await apiClient.get<{ message: string; data: TokohApiRecord[] }>("/tokoh");
+    return body.data.map(mapTokoh);
+  } catch (error) {
+    console.error("[services/tokoh/fetchTokohList]", error);
+    throw new Error("Gagal memuat daftar tokoh masyarakat. Coba lagi.");
+  }
 }
 
 async function createTokohMock(input: CreateTokohInput): Promise<Tokoh> {
@@ -325,5 +370,17 @@ async function createTokohMock(input: CreateTokohInput): Promise<Tokoh> {
 
 export async function createTokoh(input: CreateTokohInput): Promise<Tokoh> {
   if (isMockApiEnabled()) return createTokohMock(input);
-  throw new Error(ENDPOINT_NOT_CONFIRMED);
+  try {
+    // userId TIDAK dikirim di body — backend ambil dari JWT (@User() decorator,
+    // sama pola createBudgetTransaction).
+    const { data: body } = await apiClient.post<{ message: string; data: TokohApiRecord }>("/tokoh", input);
+    return mapTokoh(body.data);
+  } catch (error) {
+    console.error("[services/tokoh/createTokoh]", error);
+    if (axios.isAxiosError(error) && error.response) {
+      const message = error.response.data?.message;
+      throw new Error(typeof message === "string" ? message : "Gagal menyimpan tokoh. Coba lagi.");
+    }
+    throw new Error("Gagal terhubung ke server. Periksa koneksi internet Anda.");
+  }
 }

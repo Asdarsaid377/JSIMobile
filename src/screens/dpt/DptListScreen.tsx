@@ -97,6 +97,15 @@ export function DptListScreen() {
 		});
 	}
 
+	function handleGotv(record: DptRecord): void {
+		setActionRecord(null);
+		navigation.navigate("GotvForm", {
+			dptRecord: record,
+			kabWilId,
+			kabNama: firstPage?.kab.nama,
+		});
+	}
+
 	function handleTokoh(record: DptRecord): void {
 		navigation.navigate("TokohForm", { dptRecord: record, kabWilId });
 	}
@@ -398,6 +407,7 @@ export function DptListScreen() {
 				record={actionRecord}
 				onClose={() => setActionRecord(null)}
 				onDtdoor={handleDtdoor}
+				onGotv={handleGotv}
 				onEdit={handleEdit}
 				onDelete={handleDelete}
 			/>

@@ -32,5 +32,16 @@ export type CreateGotvInput = {
   // live 2026-08-23, lihat api-standards.md § gotv), meski DTO backend
   // menandainya optional. Insert tanpa nik gagal di level SQL, bukan 422.
   nik: string;
-  noTelpon?: string;
+  // Wajib juga — DTO backend `@IsNumberString()` TANPA `@IsOptional()` (beda
+  // dari dokumentasi lama yang mengira ini opsional, dikonfirmasi live curl
+  // 2026-08-24: body tanpa `no_telpon` balas "no_telpon must be a number
+  // string" — bukan bug baru dari fitur linkage DPT, field ini SELALU wajib
+  // sejak awal, cuma baru ketahuan sekarang). Lihat api-standards.md § gotv.
+  noTelpon: string;
+  // Terisi cuma kalau form ini dibuka dari "Tandai ikut Social Event"
+  // (DptVoterActionSheet, 2026-08-24) — nilai asli dari DptRecord terpilih
+  // (idDpt/kabWilId), dipakai backend untuk join balik dpt.gotv (lihat
+  // services/gotv.ts). Kosong = entri standalone, idDpt sintetis di-generate.
+  idDpt?: number;
+  kabId?: number;
 };

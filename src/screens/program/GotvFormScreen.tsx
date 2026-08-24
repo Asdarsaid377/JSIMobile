@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { ScrollView, Text } from "react-native";
 
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
@@ -9,7 +10,21 @@ import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useCreateGotv } from "@/hooks/useCreateGotv";
-import type { ProgramStackParamList } from "@/navigation/ProgramStack";
+import { useMarkDptGotv } from "@/hooks/useDptRecordMutations";
+import type { DptRecord } from "@/types/dpt";
+
+// Screen ini di-mount dari 2 stack berbeda: ProgramStack (entri standalone,
+// route params undefined) DAN DptStack (fitur "Tandai ikut Social Event",
+// 2026-08-24 — route params bawa dptRecord terpilih). Param list lokal
+// minimal supaya component tidak terikat ke salah satu stack — pola identik
+// DtdoorFormScreen.tsx (lihat file itu untuk penjelasan lengkap kenapa route
+// name "GotvForm" didaftarkan di kedua stack dengan component yang sama).
+export type GotvFormParams = {
+  dptRecord?: DptRecord;
+  kabWilId?: number;
+  kabNama?: string;
+};
+type GotvFormRouteParamList = { GotvForm: GotvFormParams | undefined };
 
 const gotvFormSchema = z.object({
   namaLengkap: z.string().min(1, "Nama PIC wajib diisi."),
@@ -22,7 +37,11 @@ const gotvFormSchema = z.object({
   // Wajib — kolom nik di database NOT NULL tanpa default (lihat
   // api-standards.md § gotv), meski DTO backend menandainya optional.
   nik: z.string().min(1, "NIK wajib diisi."),
-  noTelpon: z.string().optional(),
+  // Wajib juga — DTO backend `@IsNumberString()` tanpa `@IsOptional()`
+  // (dikonfirmasi live curl 2026-08-24, lihat api-standards.md § gotv &
+  // types/gotv.ts). Sebelumnya dianggap opsional di form ini — itu penyebab
+  // "Validation failed" saat field ini dikosongkan.
+  noTelpon: z.string().min(1, "No. Telpon wajib diisi."),
 });
 
 type FormValues = {
@@ -40,18 +59,24 @@ type FormValues = {
 type FormErrors = Partial<Record<keyof FormValues, string>>;
 
 export function GotvFormScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<ProgramStackParamList, "GotvForm">>();
+  const navigation = useNavigation<NativeStackNavigationProp<GotvFormRouteParamList, "GotvForm">>();
+  const route = useRoute<RouteProp<GotvFormRouteParamList, "GotvForm">>();
+  const { dptRecord, kabWilId } = route.params ?? {};
   const createMutation = useCreateGotv();
+  // kabWilId cuma ada kalau screen ini dibuka dari DptStack (dptRecord juga
+  // pasti ada bareng — lihat DptListScreen.tsx). Hook dipanggil unconditional
+  // (Rules of Hooks) tapi mutation-nya cuma dipakai kalau dptRecord ada.
+  const markGotvMutation = useMarkDptGotv(kabWilId ?? -1);
 
   const [values, setValues] = useState<FormValues>({
-    namaLengkap: "",
+    namaLengkap: dptRecord?.nama ?? "",
     namaKegiatan: "",
-    tps: "",
-    desa: "",
-    kecamatan: "",
-    kabupaten: "",
+    tps: dptRecord?.namaTps ?? "",
+    desa: dptRecord?.namaKel ?? "",
+    kecamatan: dptRecord?.namaKec ?? "",
+    kabupaten: route.params?.kabNama ?? "",
     jumlahWajibPilih: "",
-    nik: "",
+    nik: dptRecord?.nik ?? "",
     noTelpon: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -64,10 +89,7 @@ export function GotvFormScreen() {
   function handleSubmit() {
     setSubmitError(null);
 
-    const parsed = gotvFormSchema.safeParse({
-      ...values,
-      noTelpon: values.noTelpon || undefined,
-    });
+    const parsed = gotvFormSchema.safeParse(values);
 
     if (!parsed.success) {
       const fieldErrors: FormErrors = {};
@@ -82,10 +104,28 @@ export function GotvFormScreen() {
     }
     setErrors({});
 
-    createMutation.mutate(parsed.data, {
-      onSuccess: () => navigation.goBack(),
-      onError: (error) => setSubmitError(error.message),
-    });
+    createMutation.mutate(
+      {
+        ...parsed.data,
+        // dptRecord.idDpt bisa null (record DPT yang dibuat lewat app ini,
+        // backend tidak pernah mengisi kolom idDpt untuk create — lihat
+        // api-standards.md § DPT). kalau null, fallback ke idDpt sintetis
+        // standalone (createGotv() sudah handle default itu sendiri).
+        ...(dptRecord && dptRecord.idDpt !== null ? { idDpt: dptRecord.idDpt, kabId: kabWilId } : {}),
+      },
+      {
+        onSuccess: () => {
+          // Terhubung ke DPT → tandai sudahGotv=true di record itu juga (lihat
+          // services/dpt.ts § markDptGotv). Gagal-tandai tidak menghalangi
+          // navigasi balik — kegiatan Gotv-nya sendiri sudah tersimpan.
+          if (dptRecord && kabWilId !== undefined) {
+            markGotvMutation.mutate(dptRecord.id);
+          }
+          navigation.goBack();
+        },
+        onError: (error) => setSubmitError(error.message),
+      },
+    );
   }
 
   return (
@@ -136,6 +176,7 @@ export function GotvFormScreen() {
           value={values.noTelpon}
           onChangeText={(t) => setField("noTelpon", t)}
           keyboardType="phone-pad"
+          error={errors.noTelpon}
         />
 
         {submitError ? <Text className="text-body-md text-danger">{submitError}</Text> : null}

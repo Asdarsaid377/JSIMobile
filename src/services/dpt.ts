@@ -798,6 +798,18 @@ export async function markDptDtdoor(kabWilId: number, id: number): Promise<void>
   if (isMockApiEnabled()) return markDptDtdoorMock(kabWilId, id);
 }
 
+// Fitur "Tandai ikut Social Event" (2026-08-24) — pola identik markDptDtdoor
+// di atas (real mode no-op, sudahGotv datang dari field `gotv` di response
+// list via linkage idDpt+kabId sungguhan, lihat createGotv di services/gotv.ts).
+async function markDptGotvMock(kabWilId: number, id: number): Promise<void> {
+  await mockDelay();
+  mockDptByKab[kabWilId] = getMockDptList(kabWilId).map((record) => (record.id === id ? { ...record, sudahGotv: true } : record));
+}
+
+export async function markDptGotv(kabWilId: number, id: number): Promise<void> {
+  if (isMockApiEnabled()) return markDptGotvMock(kabWilId, id);
+}
+
 // Fitur "Identifikasi Tokoh Baru dari DPT" (icon bintang di DptCard) — pola
 // sama markDptDtdoor. ⚠️ Real mode: TIDAK ADA kolom "sudahTokoh" di backend
 // sama sekali (Tokoh Masyarakat modul terpisah, tidak ada relasi ke DPT) —

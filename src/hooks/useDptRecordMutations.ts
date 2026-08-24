@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { createDptRecord, deleteDptRecord, markDptDtdoor, markDptTokoh, updateDptRecord } from "@/services/dpt";
+import { createDptRecord, deleteDptRecord, markDptDtdoor, markDptGotv, markDptTokoh, updateDptRecord } from "@/services/dpt";
 import type { CreateDptRecordInput, DptRecord, UpdateDptRecordInput } from "@/types/dpt";
 
 // 3 hook CRUD terpisah (bukan 1 hook gabungan) — pola sama `useRivalCaleg.ts`
@@ -47,6 +47,18 @@ export function useMarkDptDtdoor(kabWilId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => markDptDtdoor(kabWilId, id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: dptListQueryKey(kabWilId) });
+    },
+  });
+}
+
+// Dipanggil dari GotvFormScreen setelah createGotv() sukses dengan idDpt
+// terhubung ke record DPT ini — lihat services/dpt.ts § markDptGotv.
+export function useMarkDptGotv(kabWilId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => markDptGotv(kabWilId, id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: dptListQueryKey(kabWilId) });
     },

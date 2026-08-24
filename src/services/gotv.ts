@@ -185,13 +185,20 @@ export async function createGotv(input: CreateGotvInput): Promise<Gotv> {
       // "Field 'nik' doesn't have a default value") — GotvFormScreen sekarang
       // mewajibkan field ini juga.
       nik: input.nik,
-      no_telpon: input.noTelpon,
-      idDpt: generateSyntheticIdDpt(),
-      // WAJIB null eksplisit, BUKAN diomit — GoTvController.insert() (backend)
-      // build `GoTV.findOne({where:{idDpt,kabId: goTvInsertDTo.kabId}})` tanpa
-      // guard, Sequelize throw "has invalid undefined value" kalau key ini
-      // absen (pola bug sama persis dengan kepalaKeluargaId di dtdoor).
-      kabId: null,
+      // DTO backend decorate `@IsNumberString()` (angka murni, TIDAK terima
+      // strip "-"/spasi) — dikonfirmasi live curl 2026-08-24, lihat
+      // api-standards.md § gotv. Strip semua karakter non-digit sebelum kirim.
+      no_telpon: input.noTelpon.replace(/\D/g, ""),
+      // Terhubung ke DPT ("Tandai ikut Social Event", 2026-08-24) -> idDpt/kabId
+      // asli record itu, supaya join balik dpt.gotv match (lihat
+      // /Users/asdarsaid/JSI/api/src/dpt/dpt.service.ts: GoTV.findAll({where:
+      // {kabId: wilKab.wilId, idDpt: {[Op.in]: dptsIds}}})). Standalone -> idDpt
+      // sintetis unik + kabId null eksplisit (BUKAN diomit — GoTvController.insert()
+      // build findOne({where:{idDpt,kabId}}) tanpa guard, Sequelize throw "has
+      // invalid undefined value" kalau key ini absen, pola bug sama persis dengan
+      // kepalaKeluargaId di dtdoor).
+      idDpt: input.idDpt !== undefined ? String(input.idDpt) : generateSyntheticIdDpt(),
+      kabId: input.kabId ?? null,
     };
     // Beda dari dtdoor/timses: GotvService.create() balas entity hasil
     // create() langsung (bukan UpdateResult), jadi tidak perlu fetch ulang.
