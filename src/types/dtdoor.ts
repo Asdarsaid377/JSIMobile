@@ -92,6 +92,73 @@ export type KunjunganInput = {
   merchendise: string;
   namaRelawan: string;
   kontakRelawan?: string;
+  // Anti-fraud (backend modul `antifraud`, 2026-08-25): timsesId dari relawan
+  // yang login (bukan namaRelawan bebas) supaya burst detection & skor
+  // relawan akurat. lat/long dari GPS device saat submit — kosong (permission
+  // ditolak/GPS mati) tetap valid, backend menandainya "GPS nonaktif" secara
+  // otomatis (AntiFraudService.checkGpsForKunjungan), bukan alasan gagal submit.
+  timsesId?: number;
+  lat?: number;
+  long?: number;
+};
+
+// Foto kunjungan diunggah TERPISAH setelah Dtdoor+kunjungan tersimpan (backend
+// butuh kunjunganId yang baru dibuat, lihat createDtdoor() § upload foto).
+// Kamera-only (bukan galeri) — enforcement di titik input, konsisten dengan
+// kebijakan "wajib foto in-app" yang sudah dinyatakan di AntiFraudScreen.
+export type FotoKunjunganInput = {
+  uri: string;
+  fotoSumber: "kamera";
+};
+
+// GET /dtdoor/rekap-kekuatan-wilayah (backend modul dtdoor, 2026-08-25) — agregasi
+// server-side untuk fitur "Kekuatan Wilayah", menggantikan fetchDtdoorAll() yang
+// SELALU throw di mode API real (tidak ada endpoint dump-semua-record). Cuma
+// kategori dengan kunjungan >0 yang muncul (tidak diisi nol) — konsisten dengan
+// lib/dtdoorScore.ts yang mengecualikan (bukan skor 0) kategori tak termapping.
+export type KekuatanWilayahKategoriRekap = { tipePemilihId: number; jumlah: number };
+export type KekuatanWilayahRekap = { desa: string; totalKunjungan: number; kategori: KekuatanWilayahKategoriRekap[] };
+export type KekuatanWilayahFilter = { kabId?: number; kecamatan?: string };
+
+// GET /dtdoor/kekuatan-pemilih (backend modul dtdoor, 2026-08-25) — daftar
+// individual RINGKAS (bukan agregat, beda dari KekuatanWilayahRekap di atas) untuk
+// fitur "Kekuatan Pemilih" (ranking top-N pemilih per skor). `id` = id row
+// DtdoorKunjungan (BUKAN Dtdoor.id), `createdAt` = tanggal kunjungan itu sendiri.
+// `tipePemilihId` selalu terisi (backend sudah filter IS NOT NULL) — beda dari
+// `Dtdoor.kategoriId` yang bisa null.
+export type KekuatanPemilihRecord = {
+  id: number;
+  namaLengkap: string;
+  desa: string | null;
+  kecamatan: string | null;
+  tipePemilihId: number;
+  createdAt: string;
+};
+export type KekuatanPemilihFilter = { kecamatan?: string };
+
+// GET /dtdoor/rekap-group/:groupBy (backend, existing — dipakai ulang untuk
+// "Ringkasan Data", bukan endpoint baru). Zero-filled untuk semua opsi kategori/
+// program bantuan (dikonfirmasi live), beda dari KekuatanWilayahKategoriRekap
+// yang cuma menyertakan kategori dengan kunjungan >0.
+export type DtdoorRekapGroupRow = { id: number; nama: string; key: string; jumlahDtdoor: number; jumlahWajibPilih: number };
+
+// GET /dtdoor/kelurahans (backend, existing).
+export type DtdoorKelurahanRekap = { desa: string; total: number };
+
+// GET /dtdoor/jenis-kelamin (backend, baru 2026-08-25) — null TIDAK difilter di
+// backend (representasi "belum diisi"), difilter di mobile saat mapping ke
+// DtdoorAnalyticsSnapshot (lihat services/dtdoor.ts).
+export type DtdoorJenisKelaminRekap = { jenisKelamin: JenisKelamin | null; total: number };
+
+// Snapshot gabungan 4 endpoint (3 existing + 1 baru) untuk DtdoorAnalyticsScreen
+// ("Ringkasan Data") — digabung client-side, pola sama isuaspirasi/quickcount.
+export type DtdoorAnalyticsSnapshot = {
+  totalKunjungan: number;
+  totalWajibPilih: number;
+  totalKelurahan: number;
+  kategori: { id: number; label: string; jumlah: number }[];
+  jenisKelamin: { value: JenisKelamin; jumlah: number }[];
+  programBantuan: { label: string; jumlah: number }[];
 };
 
 export type CreateDtdoorInput = {

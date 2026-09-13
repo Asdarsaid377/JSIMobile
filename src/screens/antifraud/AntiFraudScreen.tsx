@@ -9,7 +9,7 @@ import { AntiFraudJenisRow } from "@/components/antifraud/AntiFraudJenisRow";
 import { AntiFraudRelawanRow } from "@/components/antifraud/AntiFraudRelawanRow";
 import { AntiFraudSummaryCard } from "@/components/antifraud/AntiFraudSummaryCard";
 import { Button } from "@/components/ui/Button";
-import { useAntiFraudSnapshot } from "@/hooks/useAntiFraud";
+import { useAntiFraudSnapshot, useApproveFraudCase, useRejectFraudCase } from "@/hooks/useAntiFraud";
 import { useHideTabBar } from "@/hooks/useHideTabBar";
 import type { FraudCase } from "@/types/antifraud";
 
@@ -18,20 +18,27 @@ type FraudTab = "anomali" | "relawan";
 // Referensi: artboard "14 · VERIFIKASI KUNJUNGAN / ANTI-FRAUD (SEKUNDER —
 // DRAWER)" di project Claude Design user ("Desain Mobile JSI Dashboard",
 // 160ea937-2f8a-4ff4-9977-f8bc398c90a0), dibaca via DesignSync 2026-08-22.
-// Permintaan eksplisit user: "generate UI-nya saja dulu, nanti saya buatkan
-// API-nya" — screen ini SENGAJA read-only, tidak ada mutation approve/reject
-// sungguhan (lihat services/antifraud.ts & AntiFraudEvidenceSheet.tsx untuk
-// detail). Fitur baru murni mobile — TIDAK ADA modul ini di backend manapun
-// (CLAUDE.md Aturan #6).
+// 2026-08-25: modul backend `antifraud` sekarang ADA — WIRED penuh ke
+// GET /antifraud/summary + PATCH /antifraud/cases/:id/approve|reject
+// sungguhan (lihat services/antifraud.ts, hooks/useAntiFraud.ts).
 export function AntiFraudScreen() {
   const snapshotQuery = useAntiFraudSnapshot();
+  const approveMutation = useApproveFraudCase();
+  const rejectMutation = useRejectFraudCase();
   useHideTabBar();
 
   const [tab, setTab] = useState<FraudTab>("anomali");
   const [sheetCase, setSheetCase] = useState<FraudCase | null>(null);
+  // GET /antifraud/summary (backend) belum menyertakan `status` di array
+  // `cases` (lihat catatan di types/antifraud.ts) — jadi kasus yang baru saja
+  // di-approve/reject TIDAK otomatis hilang dari respons berikutnya. Filter
+  // sesi-lokal ini menyembunyikannya dari tab "Perlu Ditinjau" selama layar
+  // masih terbuka; reset lagi begitu screen di-remount (navigasi keluar-masuk
+  // atau restart app) sampai backend menambah field status ke mapping itu.
+  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
 
   const jenisAnomali = snapshotQuery.data?.jenisAnomali ?? [];
-  const cases = snapshotQuery.data?.cases ?? [];
+  const cases = (snapshotQuery.data?.cases ?? []).filter((item) => !reviewedIds.has(item.id));
   const relawanSkor = snapshotQuery.data?.relawanSkor ?? [];
 
   const jenisAnomaliWithPct = useMemo(() => {
@@ -44,18 +51,24 @@ export function AntiFraudScreen() {
 
   function handleApprove(item: FraudCase): void {
     setSheetCase(null);
-    Alert.alert(
-      "Ditandai disetujui",
-      `Kunjungan ${item.relawan} → ${item.target} ditandai disetujui di layar ini saja — belum tersimpan ke server (API menyusul).`,
-    );
+    approveMutation.mutate(item.id, {
+      onSuccess: () => {
+        setReviewedIds((prev) => new Set(prev).add(item.id));
+        Alert.alert("Disetujui", `Kunjungan ${item.relawan} → ${item.target} ditandai disetujui.`);
+      },
+      onError: (error) => Alert.alert("Gagal menyetujui", error.message),
+    });
   }
 
   function handleReject(item: FraudCase): void {
     setSheetCase(null);
-    Alert.alert(
-      "Ditandai ditolak",
-      `Kunjungan ${item.relawan} → ${item.target} ditandai ditolak di layar ini saja — belum tersimpan ke server (API menyusul).`,
-    );
+    rejectMutation.mutate(item.id, {
+      onSuccess: () => {
+        setReviewedIds((prev) => new Set(prev).add(item.id));
+        Alert.alert("Ditolak", `Kunjungan ${item.relawan} → ${item.target} ditandai ditolak.`);
+      },
+      onError: (error) => Alert.alert("Gagal menolak", error.message),
+    });
   }
 
   const isLoading = snapshotQuery.isLoading;

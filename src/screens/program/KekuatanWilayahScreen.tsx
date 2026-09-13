@@ -11,8 +11,8 @@ import { KekuatanToggle } from "@/components/kekuatan/KekuatanToggle";
 import { KekuatanWilayahCard } from "@/components/kekuatan/KekuatanWilayahCard";
 import { KekuatanWilayahCardSkeleton } from "@/components/kekuatan/KekuatanWilayahCardSkeleton";
 import { KekuatanZoneStackedBar } from "@/components/kekuatan/KekuatanZoneStackedBar";
-import { useDtdoorAll } from "@/hooks/useDtdoorAll";
-import { getDtdoorScore, getStrengthTier } from "@/lib/dtdoorScore";
+import { useKekuatanWilayahRekap } from "@/hooks/useKekuatanWilayahRekap";
+import { computeWeightedTier } from "@/lib/dtdoorScore";
 import type { StrengthTier } from "@/lib/dtdoorScore";
 
 type KelurahanStat = {
@@ -23,8 +23,7 @@ type KelurahanStat = {
 };
 
 // Referensi context/designs/kekuatanwilayah.png. Skor & scoping wilayah:
-// lihat lib/dtdoorScore.ts & progress-tracker.md Decisions untuk detail keputusan
-// (skor dihitung client-side dari kategoriId, belum ada endpoint agregat asli).
+// lihat lib/dtdoorScore.ts & progress-tracker.md Decisions untuk detail keputusan.
 // "List" toggle: BELUM ada mockup kedua untuk state ini — diasumsikan cuma
 // menyembunyikan chart "Peta" (list "Detail per Kelurahan" di bawahnya sudah
 // selalu ada terlepas dari toggle). Koreksi kalau asumsi ini salah.
@@ -33,35 +32,31 @@ type KelurahanStat = {
 // keren" — dikerjakan pakai dataviz skill (part-to-whole → stacked bar, bukan
 // pie/donut), lihat komentar di KekuatanZoneStackedBar.tsx untuk detail validasi
 // warna & kenapa gap+legend wajib ada. `KekuatanZoneCard.tsx` DIHAPUS (orphan).
+// 2026-08-25 — sumber data ganti dari fetchDtdoorAll() (SELALU throw di real mode,
+// tidak ada endpoint dump-semua-record) ke GET /dtdoor/rekap-kekuatan-wilayah
+// (agregasi server-side, dibuat user sendiri — lihat api-standards.md § Kekuatan
+// Wilayah). Skor tetap dihitung di mobile (computeWeightedTier di dtdoorScore.ts),
+// cuma inputnya sekarang breakdown per-kategori dari server, bukan record mentah.
 export function KekuatanWilayahScreen() {
   const [mode, setMode] = useState<KekuatanViewMode>("peta");
-  const dtdoorQuery = useDtdoorAll();
+  const rekapQuery = useKekuatanWilayahRekap();
 
   // 2026-08-23: scoping wilayah SEMENTARA dimatikan — data kecamatan profil
   // sudah tidak ada di backend (lihat types/profile.ts). Semua role lihat
   // semua data untuk sekarang, sampai ada sumber data pengganti.
-  const scopedRecords = dtdoorQuery.data ?? [];
+  const scopedRekap = rekapQuery.data ?? [];
 
   const kelurahanStats = useMemo<KelurahanStat[]>(() => {
-    const groups = new Map<string, { count: number; scores: number[] }>();
-    for (const record of scopedRecords) {
-      if (!record.desa) continue;
-      const existing = groups.get(record.desa) ?? { count: 0, scores: [] };
-      existing.count += 1;
-      const score = getDtdoorScore(record.kategoriId);
-      if (score !== null) existing.scores.push(score);
-      groups.set(record.desa, existing);
-    }
     const result: KelurahanStat[] = [];
-    for (const [desa, { count, scores }] of groups) {
+    for (const item of scopedRekap) {
       // Kelurahan tanpa satupun kunjungan berkategori tidak bisa dikasih tier —
       // dikecualikan, bukan ditampilkan dengan skor palsu.
-      if (scores.length === 0) continue;
-      const skorRata = Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length);
-      result.push({ desa, jumlahKunjungan: count, skorRata, tier: getStrengthTier(skorRata) });
+      const computed = computeWeightedTier(item.kategori);
+      if (!computed) continue;
+      result.push({ desa: item.desa, jumlahKunjungan: item.totalKunjungan, ...computed });
     }
     return result.sort((a, b) => b.skorRata - a.skorRata);
-  }, [scopedRecords]);
+  }, [scopedRekap]);
 
   const zoneCounts = useMemo(() => {
     const counts = { kuat: 0, sedang: 0, lemah: 0 };
@@ -69,11 +64,11 @@ export function KekuatanWilayahScreen() {
     return counts;
   }, [kelurahanStats]);
 
-  const isLoading = dtdoorQuery.isLoading;
-  const isError = dtdoorQuery.isError;
+  const isLoading = rekapQuery.isLoading;
+  const isError = rekapQuery.isError;
 
   function handleRetry(): void {
-    void dtdoorQuery.refetch();
+    void rekapQuery.refetch();
   }
 
   return (
@@ -121,7 +116,7 @@ export function KekuatanWilayahScreen() {
         )}
         ItemSeparatorComponent={() => <View className="h-xs" />}
         ListEmptyComponent={!isLoading && !isError ? <KekuatanEmptyState /> : null}
-        refreshControl={<RefreshControl refreshing={dtdoorQuery.isRefetching} onRefresh={handleRetry} />}
+        refreshControl={<RefreshControl refreshing={rekapQuery.isRefetching} onRefresh={handleRetry} />}
       />
     </SafeAreaView>
   );

@@ -1,4 +1,4 @@
-import { FlatList, Text, View } from "react-native";
+import { FlatList, RefreshControl, Text, View } from "react-native";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -65,6 +65,9 @@ export function SaksiTpsScreen() {
           !saksiQuery.isLoading && !saksiQuery.isError ? (
             <Text className="text-center text-body-md text-text-muted">Belum ada saksi untuk TPS ini.</Text>
           ) : null
+        }
+        refreshControl={
+          <RefreshControl refreshing={saksiQuery.isRefetching} onRefresh={() => void saksiQuery.refetch()} />
         }
       />
     </SafeAreaView>

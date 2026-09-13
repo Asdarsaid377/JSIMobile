@@ -15,11 +15,35 @@ import { TokohSummaryCard } from "@/components/tokoh/TokohSummaryCard";
 import { Button } from "@/components/ui/Button";
 import { useHideTabBar } from "@/hooks/useHideTabBar";
 import { useTokohList } from "@/hooks/useTokohList";
+import { exportTableAsPdf } from "@/lib/exportPdf";
 import type { HomeStackParamList } from "@/navigation/HomeStack";
 import { TOKOH_KATEGORI_OPTIONS } from "@/types/tokoh";
+import type { Tokoh } from "@/types/tokoh";
 
-function handleDownload(): void {
-  Alert.alert("Segera hadir", "Ekspor data tokoh belum tersedia.");
+// Ekspor "Daftar Tokoh" sesuai filter kecamatan + pencarian yang sedang aktif
+// di screen (bukan semua data) — konsisten dengan angka "N hasil" yang tampil.
+async function handleDownload(records: Tokoh[]) {
+  try {
+    await exportTableAsPdf(
+      "Daftar Tokoh Masyarakat",
+      "tokoh-masyarakat.pdf",
+      ["Nama", "Kategori", "Pengaruh", "Dukungan", "Estimasi Basis Massa", "Alamat", "Kecamatan", "Desa", "Pekerjaan", "No. Telepon"],
+      records.map((item) => [
+        item.nama,
+        item.kategoriLabel,
+        item.pengaruh,
+        item.dukungan,
+        item.estimasiBasisMassa,
+        item.alamat,
+        item.kecamatan,
+        item.desa,
+        item.pekerjaan ?? "-",
+        item.noTelpon ?? "-",
+      ]),
+    );
+  } catch (error) {
+    Alert.alert("Gagal ekspor", error instanceof Error ? error.message : "Terjadi kesalahan saat ekspor data.");
+  }
 }
 
 // Referensi context/designs/tokoh1.png (bagian atas: summary + filter) dan
@@ -63,16 +87,6 @@ export function TokohMasyarakatScreen() {
   const [selectedKecamatan, setSelectedKecamatan] = useState<string | null>(null);
   const [kecamatanPickerOpen, setKecamatanPickerOpen] = useState(false);
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <Pressable onPress={handleDownload} hitSlop={8} className="h-9 w-9 items-center justify-center active:opacity-80">
-          <Ionicons name="download-outline" size={20} color="#3b82f6" />
-        </Pressable>
-      ),
-    });
-  }, [navigation]);
-
   const allRecords = tokohQuery.data ?? [];
 
   const kecamatanOptions: TimsesRegionOption[] = useMemo(() => {
@@ -95,6 +109,20 @@ export function TokohMasyarakatScreen() {
     if (!query) return scopedRecords;
     return scopedRecords.filter((item) => item.nama.toLowerCase().includes(query));
   }, [scopedRecords, search]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => void handleDownload(searchedRecords)}
+          hitSlop={8}
+          className="h-9 w-9 items-center justify-center active:opacity-80"
+        >
+          <Ionicons name="download-outline" size={20} color="#3b82f6" />
+        </Pressable>
+      ),
+    });
+  }, [navigation, searchedRecords]);
 
   const dukunganCounts = useMemo(() => {
     const counts = { Mendukung: 0, Netral: 0, Lawan: 0 };

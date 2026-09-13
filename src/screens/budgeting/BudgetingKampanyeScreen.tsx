@@ -21,16 +21,25 @@ import {
   useUpdateBudgetTransactionStatus,
 } from "@/hooks/useBudgeting";
 import { useHideTabBar } from "@/hooks/useHideTabBar";
+import { exportTableAsPdf } from "@/lib/exportPdf";
+import { ADMIN_ROLES } from "@/lib/permissions";
 import type { HomeStackParamList } from "@/navigation/HomeStack";
-import type { BudgetScope } from "@/types/budgeting";
-import type { Role } from "@/types/auth";
+import type { BudgetScope, BudgetTransaction } from "@/types/budgeting";
 
-// Duplikat lokal `ADMIN_ROLES` (bukan util bersama) — pola sama yang sudah
-// dipakai di HomeScreen.tsx/RootNavigator.tsx/DtdoorAnalyticsScreen.tsx.
-const ADMIN_ROLES: readonly Role[] = ["admin", "adminsekret"];
-
-function handleDownload(): void {
-  Alert.alert("Segera hadir", "Ekspor laporan anggaran akan datang.");
+// Ekspor daftar transaksi (level paling detail, bukan cuma ringkasan per pos)
+// — sesuai data yang sudah ke-fetch untuk scope aktif ("Bulan Ini"/"Total
+// Kampanye"), bukan re-fetch terpisah.
+async function handleDownload(transactions: BudgetTransaction[]) {
+  try {
+    await exportTableAsPdf(
+      "Budgeting Kampanye — Daftar Transaksi",
+      "budgeting-kampanye-transaksi.pdf",
+      ["Tanggal", "Judul", "Pos Anggaran", "Nominal", "Oleh", "Status"],
+      transactions.map((tx) => [tx.createdAt, tx.title, tx.pos, tx.nominal, tx.oleh, tx.status]),
+    );
+  } catch (error) {
+    Alert.alert("Gagal ekspor", error instanceof Error ? error.message : "Terjadi kesalahan saat ekspor data.");
+  }
 }
 
 // Referensi desain: context/designs/budgeting-kampanye.dc.html (artboard 12
@@ -97,7 +106,7 @@ export function BudgetingKampanyeScreen() {
             </Pressable>
           ) : null}
           <Pressable
-            onPress={handleDownload}
+            onPress={() => void handleDownload(txQuery.data ?? [])}
             hitSlop={8}
             className="h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface active:opacity-80"
           >
@@ -107,7 +116,7 @@ export function BudgetingKampanyeScreen() {
       ),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigation, isAdmin]);
+  }, [navigation, isAdmin, txQuery.data]);
 
   const isLoading = summaryQuery.isLoading || posQuery.isLoading || trendQuery.isLoading;
   const isError = summaryQuery.isError || posQuery.isError || trendQuery.isError;

@@ -19,6 +19,9 @@ type UserApiRecord = {
   jenisKelamin: string;
   statusOnline: string | null;
   roles: TimsesProfile["roles"];
+  kabId: number | null;
+  kecId: number | null;
+  kelId: number | null;
 };
 
 function mapProfile(record: UserApiRecord): TimsesProfile {
@@ -29,6 +32,9 @@ function mapProfile(record: UserApiRecord): TimsesProfile {
     jenisKelamin: record.jenisKelamin,
     statusOnline: record.statusOnline,
     roles: record.roles,
+    kabId: record.kabId,
+    kecId: record.kecId,
+    kelId: record.kelId,
   };
 }
 
@@ -43,6 +49,9 @@ const MOCK_PROFILES: Record<number, TimsesProfile> = {
 		jenisKelamin: "L",
 		statusOnline: "online",
 		roles: "admin",
+		kabId: null,
+		kecId: null,
+		kelId: null,
 	},
 	2: {
 		id: 2,
@@ -51,6 +60,11 @@ const MOCK_PROFILES: Record<number, TimsesProfile> = {
 		jenisKelamin: "L",
 		statusOnline: "online",
 		roles: "timses",
+		// Demo scoped-desa — supaya AccessScopeNotice ada sesuatu untuk
+		// ditunjukkan di mock mode (akun 1/admin sengaja unrestricted).
+		kabId: 7303,
+		kecId: 730301,
+		kelId: 7303010001,
 	},
 };
 

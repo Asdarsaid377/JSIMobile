@@ -2,10 +2,10 @@ import { Text, View } from "react-native";
 
 import { Badge } from "@/components/ui/Badge";
 import type { StrengthTier } from "@/lib/dtdoorScore";
-import type { Dtdoor } from "@/types/dtdoor";
+import type { KekuatanPemilihRecord } from "@/types/dtdoor";
 
 type Props = {
-  item: Dtdoor;
+  item: KekuatanPemilihRecord;
   score: number;
   tier: StrengthTier;
 };

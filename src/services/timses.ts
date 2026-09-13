@@ -1,138 +1,26 @@
+import axios from "axios";
+
+import { apiClient } from "@/lib/api/client";
 import { isMockApiEnabled, mockDelay } from "@/lib/api/mock";
-import type { TimsesMember } from "@/types/timses";
+import type { CreateTimsesMemberInput, TimsesMember, UpdateTimsesRoleInput } from "@/types/timses";
 
-// 2026-08-23: `TimsesApiRecord`/`mapTimsesMember` (kontrak backend LAMA,
-// TypeORM entity `Timse` — dusun/desa/kecamatan/no_telpon/lat/long) DIHAPUS.
-// Backend baru (`TimsesModel`, Sequelize) tidak punya kolom-kolom itu sama
-// sekali, dan tidak ada endpoint list-semua-anggota lagi (lihat
-// `fetchTimsesList` di bawah) — tidak ada lagi mapper real API untuk file ini.
-
-// Data demo untuk verifikasi hierarki Kecamatan > Desa + status online snapshot
-// (lihat progress-tracker.md Decisions — realtime socket.io TIDAK dipakai, backend
-// gateway-nya kosong dan `status_online` tidak pernah direset ke "offline"). 5 nama
-// pertama diambil dari context/designs/timses.png, 3 tambahan (kecamatan Rancaekek)
-// ditambah supaya drill-down Kecamatan bisa diverifikasi dengan >1 pilihan.
-// `lat`/`long` cuma diisi untuk 3 anggota (Dedi/Yayat online, Neng Sari offline) —
-// mencerminkan kenyataan backend (Feature 07): field ini tidak pernah ditulis
-// siapapun sebelum ada fitur ini, jadi mayoritas anggota belum punya data lokasi.
+// 2026-08-25 — RBAC: wired penuh ke backend real (`GET/POST/PATCH /user*`,
+// modul `user`, lihat api-standards.md § RBAC). Kolom `dusun`/`desa`/
+// `kecamatan`/`no_telpon`/`nik` (skema lama) TIDAK kembali — diganti
+// `kabId`/`kecId`/`kelId` numerik (lihat types/timses.ts).
 const MOCK_TIMSES: TimsesMember[] = [
-  {
-    id: 101,
-    nik: "3204011201010001",
-    namaLengkap: "Dedi Kurniawan",
-    dusun: "Cileunyi Kulon",
-    desa: "Cileunyi Kulon",
-    kecamatan: "Cileunyi",
-    jenisKelamin: "L",
-    noTelpon: "0812-1000-0001",
-    roles: "relawankecamatan",
-    statusOnline: "online",
-    lat: -6.928,
-    long: 107.7295,
-  },
-  {
-    id: 102,
-    nik: "3204011201010002",
-    namaLengkap: "Yayat Hidayat",
-    dusun: "Cileunyi Kulon",
-    desa: "Cileunyi Kulon",
-    kecamatan: "Cileunyi",
-    jenisKelamin: "L",
-    noTelpon: "0812-1000-0002",
-    roles: "relawandesa",
-    statusOnline: "online",
-    lat: -6.931,
-    long: 107.725,
-  },
-  {
-    id: 103,
-    nik: "3204011201010003",
-    namaLengkap: "Neng Sari",
-    dusun: "Cileunyi Wetan",
-    desa: "Cileunyi Wetan",
-    kecamatan: "Cileunyi",
-    jenisKelamin: "P",
-    noTelpon: "0812-1000-0003",
-    roles: "timses",
-    statusOnline: "offline",
-    lat: -6.935,
-    long: 107.733,
-  },
-  {
-    id: 104,
-    nik: "3204011201010004",
-    namaLengkap: "Asep Saepudin",
-    dusun: "Cinunuk",
-    desa: "Cinunuk",
-    kecamatan: "Cileunyi",
-    jenisKelamin: "L",
-    noTelpon: "0812-1000-0004",
-    roles: "timses",
-    statusOnline: "offline",
-    lat: null,
-    long: null,
-  },
-  {
-    id: 105,
-    nik: "3204011201010005",
-    namaLengkap: "Mira Anggraini",
-    dusun: "Cimekar",
-    desa: "Cimekar",
-    kecamatan: "Cileunyi",
-    jenisKelamin: "P",
-    noTelpon: "0812-1000-0005",
-    roles: "relawandesa",
-    statusOnline: "online",
-    lat: null,
-    long: null,
-  },
-  {
-    id: 106,
-    nik: "3204011201010006",
-    namaLengkap: "Rina Marlina",
-    dusun: "Rancaekek Kulon",
-    desa: "Rancaekek Kulon",
-    kecamatan: "Rancaekek",
-    jenisKelamin: "P",
-    noTelpon: "0812-1000-0006",
-    roles: "relawankecamatan",
-    statusOnline: "online",
-    lat: null,
-    long: null,
-  },
-  {
-    id: 107,
-    nik: "3204011201010007",
-    namaLengkap: "Budi Santoso",
-    dusun: "Rancaekek Kulon",
-    desa: "Rancaekek Kulon",
-    kecamatan: "Rancaekek",
-    jenisKelamin: "L",
-    noTelpon: "0812-1000-0007",
-    roles: "timses",
-    statusOnline: "offline",
-    lat: null,
-    long: null,
-  },
-  {
-    id: 108,
-    nik: "3204011201010008",
-    namaLengkap: "Siti Aminah",
-    dusun: "Bojongloa",
-    desa: "Bojongloa",
-    kecamatan: "Rancaekek",
-    jenisKelamin: "P",
-    noTelpon: "0812-1000-0008",
-    roles: "relawandesa",
-    statusOnline: "online",
-    lat: null,
-    long: null,
-  },
+  { id: 101, namaLengkap: "Dedi Kurniawan", roles: "relawankecamatan", statusOnline: "online", lat: -6.928, long: 107.7295, kabId: 7303, kecId: 730301, kelId: null },
+  { id: 102, namaLengkap: "Yayat Hidayat", roles: "relawandesa", statusOnline: "online", lat: -6.931, long: 107.725, kabId: 7303, kecId: 730301, kelId: 7303010001 },
+  { id: 103, namaLengkap: "Neng Sari", roles: "timses", statusOnline: "offline", lat: -6.935, long: 107.733, kabId: 7303, kecId: 730301, kelId: 7303010002 },
+  { id: 104, namaLengkap: "Asep Saepudin", roles: "timses", statusOnline: "offline", lat: null, long: null, kabId: 7303, kecId: 730301, kelId: 7303010003 },
+  { id: 105, namaLengkap: "Mira Anggraini", roles: "relawandesa", statusOnline: "online", lat: null, long: null, kabId: 7303, kecId: 730302, kelId: 7303020001 },
+  { id: 106, namaLengkap: "Rina Marlina", roles: "relawankecamatan", statusOnline: "online", lat: null, long: null, kabId: 7303, kecId: 730302, kelId: null },
+  { id: 107, namaLengkap: "Budi Santoso", roles: "timses", statusOnline: "offline", lat: null, long: null, kabId: 7303, kecId: 730302, kelId: 7303020002 },
+  { id: 108, namaLengkap: "Siti Aminah", roles: "relawankabupaten", statusOnline: "online", lat: null, long: null, kabId: 7303, kecId: null, kelId: null },
 ];
 
 // Mutable copy — `updateOwnLocation` (Feature 07) menulis ke sini di mock mode
-// supaya beacon lokasi device sendiri kelihatan efeknya tanpa backend asli
-// (pola sama dengan `mockDtdoorList`/`mockGotvList` di services/dtdoor.ts & gotv.ts).
+// supaya beacon lokasi device sendiri kelihatan efeknya tanpa backend asli.
 let mockTimsesList: TimsesMember[] = [...MOCK_TIMSES];
 
 async function fetchTimsesListMock(): Promise<TimsesMember[]> {
@@ -140,23 +28,57 @@ async function fetchTimsesListMock(): Promise<TimsesMember[]> {
   return mockTimsesList;
 }
 
-// 2026-08-23: modul backend `timses` (TypeORM, `GET /timses`) SUDAH TIDAK ADA
-// — diganti modul `user` (Sequelize, `src/user/user.controller.ts`) yang
-// SELF-SERVICE SAJA (`GET /user/profile`, dari JWT, tidak ada `:id`, apalagi
-// list-semua-anggota). Dicari ke seluruh backend, tidak ketemu endpoint
-// pengganti untuk kapabilitas "list semua anggota timses" — bukan cuma salah
-// path, kapabilitasnya sendiri belum ada. Real branch sengaja `throw` pesan
-// jelas (Aturan #6 — jangan mengarang endpoint), BUKAN mencoba path lain.
-// TimsesScreen/LacakRelawanScreen akan tampil "gagal memuat" sampai ada
-// sumber data pengganti — lihat progress-tracker.md Decisions & api-standards.md.
-const LIST_ENDPOINT_NOT_AVAILABLE =
-  "Daftar anggota timses belum tersedia dari server (endpoint-nya sudah tidak ada di backend). Aktifkan EXPO_PUBLIC_USE_MOCK_API=true untuk demo.";
+type UserListApiRecord = {
+  id: number;
+  namaLengkap: string;
+  roles: TimsesMember["roles"];
+  statusOnline: string | null;
+  lat: number | string | null;
+  long: number | string | null;
+  kabId: number | null;
+  kecId: number | null;
+  kelId: number | null;
+};
+
+// `lat`/`long` DECIMAL di MySQL — Sequelize/driver kadang balikin sebagai
+// string, bukan number (kuirk umum node-mysql2 untuk kolom DECIMAL). Parse
+// eksplisit di sini supaya konsumen (TrackingMapView dst.) selalu dapat
+// number|null, tidak perlu tahu soal kuirk ini.
+function toNumberOrNull(value: number | string | null): number | null {
+  if (value === null) return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function mapMember(record: UserListApiRecord): TimsesMember {
+  return {
+    id: record.id,
+    namaLengkap: record.namaLengkap,
+    roles: record.roles,
+    statusOnline: record.statusOnline === "online" ? "online" : "offline",
+    lat: toNumberOrNull(record.lat),
+    long: toNumberOrNull(record.long),
+    kabId: record.kabId,
+    kecId: record.kecId,
+    kelId: record.kelId,
+  };
+}
 
 export async function fetchTimsesList(): Promise<TimsesMember[]> {
   if (isMockApiEnabled()) {
     return fetchTimsesListMock();
   }
-  throw new Error(LIST_ENDPOINT_NOT_AVAILABLE);
+  try {
+    // Dibungkus {message,data} oleh TransformInterceptor global (pola sama
+    // /user/profile). Backend SUDAH menerapkan scoping wilayah server-side
+    // (lihat commons/helpers/scope.helper.ts) — response ini otomatis
+    // terbatas sesuai role+wilayah requester, tidak perlu filter ulang di sini.
+    const { data } = await apiClient.get<{ message: string; data: UserListApiRecord[] }>("/user/list");
+    return data.data.map(mapMember);
+  } catch (error) {
+    console.error("[services/timses/fetchTimsesList]", error);
+    throw new Error("Gagal memuat daftar anggota timses.");
+  }
 }
 
 async function updateOwnLocationMock(id: number, coords: { lat: number; long: number }): Promise<void> {
@@ -167,20 +89,62 @@ async function updateOwnLocationMock(id: number, coords: { lat: number; long: nu
 }
 
 // Beacon lokasi (Feature 07 — Lacak Relawan): dipanggil berkala oleh
-// useLocationBeacon selama app di foreground, untuk SEMUA role yang login (bukan
-// cuma admin) — supaya map admin punya data posisi anggota lapangan. Best-effort:
-// kegagalan di-log tapi tidak dilempar ke UI (bukan aksi yang diminta user secara
-// eksplisit, tidak boleh mengganggu screen manapun yang sedang dibuka).
-//
-// 2026-08-23: model `TimsesModel` (Sequelize, backend baru) TIDAK PUNYA kolom
-// lat/long sama sekali (dikonfirmasi baca `database/models/user/timses.mode.ts`)
-// — bukan cuma endpoint pindah, kapabilitasnya sendiri sudah tidak ada.
-// No-op langsung (BUKAN coba PATCH lalu gagal tiap 30 detik) — hindari spam
-// request 404 percuma ke server. Sengaja tidak `throw` (pola sama sebelumnya,
-// silent best-effort) supaya tidak butuh penanganan baru di useLocationBeacon.
+// useLocationBeacon selama app di foreground, untuk SEMUA role yang login.
+// Best-effort: kegagalan di-log tapi tidak dilempar ke UI.
 export async function updateOwnLocation(id: number, coords: { lat: number; long: number }): Promise<void> {
   if (isMockApiEnabled()) {
     return updateOwnLocationMock(id, coords);
   }
-  console.warn("[services/timses/updateOwnLocation] Dilewati — backend tidak punya kolom lat/long lagi.", { id });
+  try {
+    await apiClient.post("/user/location", coords);
+  } catch (error) {
+    console.error("[services/timses/updateOwnLocation]", error, { id });
+  }
+}
+
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error) && error.response) {
+    const message = error.response.data?.message;
+    if (typeof message === "string") return message;
+  }
+  return fallback;
+}
+
+// Admin-only — POST /user (@Roles admin/adminsekret di backend). Belum
+// dipakai UI manapun (form "Tambah Anggota" menunggu referensi desain, lihat
+// progress-tracker.md), disiapkan lebih dulu supaya screen-nya tinggal
+// panggil begitu dibangun.
+export async function createTimsesMember(input: CreateTimsesMemberInput): Promise<TimsesMember> {
+  try {
+    const { data } = await apiClient.post<{ message: string; data: UserListApiRecord }>("/user", input);
+    return mapMember(data.data);
+  } catch (error) {
+    console.error("[services/timses/createTimsesMember]", error);
+    throw new Error(extractErrorMessage(error, "Gagal membuat akun relawan."));
+  }
+}
+
+// Admin-only — PATCH /user/:id (@Roles admin/adminsekret di backend).
+export async function updateTimsesRole(id: number, input: UpdateTimsesRoleInput): Promise<TimsesMember> {
+  try {
+    const { data } = await apiClient.patch<{ message: string; data: UserListApiRecord }>(`/user/${id}`, input);
+    return mapMember(data.data);
+  } catch (error) {
+    console.error("[services/timses/updateTimsesRole]", error);
+    throw new Error(extractErrorMessage(error, "Gagal memperbarui role/wilayah akun."));
+  }
+}
+
+// Admin-only — DELETE /user/:id (@Roles admin/adminsekret di backend,
+// 2026-08-26, spesifikasi diajukan mobile → dibuat user di repo backend).
+// Hard delete (tabel `timses` tidak punya kolom soft-delete) — backend juga
+// menolak (422) kalau admin coba hapus akun sendiri, pesan errornya
+// diteruskan apa adanya lewat extractErrorMessage.
+export async function deleteTimsesMember(id: number): Promise<void> {
+  try {
+    await apiClient.delete(`/user/${id}`);
+  } catch (error) {
+    console.error("[services/timses/deleteTimsesMember]", error);
+    throw new Error(extractErrorMessage(error, "Gagal menghapus akun."));
+  }
 }

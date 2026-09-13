@@ -1,4 +1,4 @@
-import { FlatList, Text, View } from "react-native";
+import { FlatList, RefreshControl, Text, View } from "react-native";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -118,6 +118,9 @@ export function TargetSuaraReportScreen() {
               Belum ada target suara yang diisi di kabupaten ini.
             </Text>
           ) : null
+        }
+        refreshControl={
+          <RefreshControl refreshing={reportQuery.isRefetching} onRefresh={() => void reportQuery.refetch()} />
         }
       />
     </SafeAreaView>

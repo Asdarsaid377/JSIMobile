@@ -1,4 +1,4 @@
-import { ScrollView } from "react-native";
+import { RefreshControl, ScrollView } from "react-native";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -34,7 +34,12 @@ export function TargetSuaraTpsScreen() {
 
   return (
     <SafeAreaView edges={[]} className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 12 }}
+        refreshControl={
+          <RefreshControl refreshing={targetMapQuery.isRefetching} onRefresh={() => void targetMapQuery.refetch()} />
+        }
+      >
         <TargetSuaraHeaderCard
           nama={`TPS ${namaTps}`}
           totalDpt={totalPemilihTps}

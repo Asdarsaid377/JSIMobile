@@ -36,15 +36,19 @@ const LEVEL_BADGE_TEXT_CLASS: Record<IsuWilayahLevel, string> = {
 export function IsuPetaWilayahRow({ nama, totalAspirasi, isuDominan, level }: Props) {
   return (
     <View className="flex-row items-center justify-between gap-sm rounded-lg border border-border bg-surface p-md">
-      <View className="flex-row items-center gap-sm">
-        <View className={`h-2.5 w-2.5 rounded-sm ${LEVEL_DOT_CLASS[level]}`} />
-        <View className="gap-xs">
-          <Text className="text-body-md font-semibold text-text-primary">{nama}</Text>
+      <View className="flex-1 flex-row items-center gap-sm">
+        <View className={`h-2.5 w-2.5 shrink-0 rounded-sm ${LEVEL_DOT_CLASS[level]}`} />
+        <View className="flex-1 gap-xs">
+          <Text className="text-body-md font-semibold text-text-primary" numberOfLines={1}>
+            {nama}
+          </Text>
           <Text className="text-caption text-text-muted">{totalAspirasi} aspirasi tercatat</Text>
         </View>
       </View>
-      <View className={`rounded-full px-sm py-xs ${LEVEL_BADGE_BG_CLASS[level]}`}>
-        <Text className={`text-caption font-bold ${LEVEL_BADGE_TEXT_CLASS[level]}`}>{isuDominan}</Text>
+      <View className={`shrink-0 rounded-full px-sm py-xs ${LEVEL_BADGE_BG_CLASS[level]}`}>
+        <Text className={`text-caption font-bold ${LEVEL_BADGE_TEXT_CLASS[level]}`} numberOfLines={1}>
+          {isuDominan}
+        </Text>
       </View>
     </View>
   );

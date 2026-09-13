@@ -7,9 +7,7 @@ import { AuthStack } from "@/navigation/AuthStack";
 import { TimsesTabs } from "@/navigation/TimsesTabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocationBeacon } from "@/hooks/useLocationBeacon";
-import type { Role } from "@/types/auth";
-
-const ADMIN_ROLES: readonly Role[] = ["admin", "adminsekret"];
+import { ADMIN_ROLES } from "@/lib/permissions";
 
 export function RootNavigator() {
   const { status, session } = useAuth();

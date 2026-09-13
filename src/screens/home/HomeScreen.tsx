@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -17,9 +17,10 @@ import { useDtdoorCount } from "@/hooks/useDtdoorCount";
 import { useDtdoorList } from "@/hooks/useDtdoorList";
 import { useGotvCount } from "@/hooks/useGotvCount";
 import { useGotvList } from "@/hooks/useGotvList";
+import { useUnreadNotificationCount } from "@/hooks/useNotificationCenter";
 import { useProfile } from "@/hooks/useProfile";
+import { ADMIN_ROLES, ROLE_LABEL } from "@/lib/permissions";
 import type { HomeStackParamList } from "@/navigation/HomeStack";
-import type { Role } from "@/types/auth";
 
 const RECENT_ACTIVITY_LIMIT = 5;
 
@@ -38,21 +39,6 @@ type HomeActivity = {
 // — keputusan eksplisit user saat diminta menghidupkan tampilan Home.
 const DPT_DEMO_KAB_WIL_ID = 7303;
 
-const ADMIN_ROLES: readonly Role[] = ["admin", "adminsekret"];
-
-// Duplikat kecil dari ProfileScreen.tsx (konteks beda: welcome banner vs field
-// profil) — pola sama dengan ROLE_LABEL di TimsesMemberCard.tsx, sengaja tidak
-// digabung jadi shared util (lihat ui-registry.md).
-const ROLE_LABEL: Record<Role, string> = {
-	admin: "Admin",
-	adminsekret: "Adminsekret",
-	timses: "Timses",
-	relawankabupaten: "Relawan Kabupaten",
-	relawankecamatan: "Relawan Kecamatan",
-	relawandesa: "Relawan Desa",
-	relawantps: "Relawan TPS",
-};
-
 function handleNotImplemented(): void {
 	Alert.alert("Segera hadir", "Fitur ini akan datang.");
 }
@@ -62,8 +48,12 @@ function handleNotImplemented(): void {
 // screen setelah ditemukan tab bar asli di semua desain cuma Home/DPT/Rekap/
 // Program/Profil, lihat progress-tracker.md Decisions), plus 2 kartu statistik
 // Program Pemenangan (murah, reuse GET /dtdoor/count & /gotv/count yang sudah ada).
-// Notifikasi di home-dashboard.png masih di-skip (Alert "Segera hadir", belum
-// ada fitur di baliknya). Progress bar "Persentase Data DPT" & section
+// Notifikasi di home-dashboard.png — 2026-08-26 SEKARANG FUNGSIONAL (dulu
+// Alert "Segera hadir"), push ke `NotificationScreen` baru (izin build tanpa
+// referensi, tidak ada backend notifikasi sama sekali — murni agregasi
+// client-side, lihat catatan lengkap di NotificationScreen.tsx). Dot merah
+// dinamis dari `useUnreadNotificationCount()`, bukan lagi hardcode statis.
+// Progress bar "Persentase Data DPT" & section
 // "Aktivitas Terbaru" DITAMBAHKAN belakangan (permintaan user "hidupkan
 // tampilan Home") — lihat DPT_DEMO_KAB_WIL_ID di atas untuk kenapa datanya
 // "contoh (demo)", bukan wilayah user asli. Icon hamburger menu (desain asli)
@@ -89,6 +79,7 @@ export function HomeScreen() {
 	const gotvListQuery = useGotvList();
 	const navigation =
 		useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
+	const unreadNotificationCount = useUnreadNotificationCount();
 
 	const dptDemoRecords = dptDemoQuery.data ?? [];
 	const dptDemoTotal = dptDemoRecords.length;
@@ -135,6 +126,27 @@ export function HomeScreen() {
 	const isActivityLoading =
 		dtdoorListQuery.isLoading || gotvListQuery.isLoading;
 
+	// Pull-to-refresh menggabungkan SEMUA query di screen ini (bukan cuma
+	// activity/count) — refetch() pada useInfiniteQuery (dtdoorListQuery/
+	// gotvListQuery) cuma mengulang halaman pertama, konsisten dengan pola
+	// ProgramPemenanganScreen (query yang sama, cache TanStack Query SAMA persis).
+	const isRefreshing =
+		profileQuery.isRefetching ||
+		dtdoorCountQuery.isRefetching ||
+		gotvCountQuery.isRefetching ||
+		dptDemoQuery.isRefetching ||
+		dtdoorListQuery.isRefetching ||
+		gotvListQuery.isRefetching;
+
+	function handleRefresh(): void {
+		void profileQuery.refetch();
+		void dtdoorCountQuery.refetch();
+		void gotvCountQuery.refetch();
+		void dptDemoQuery.refetch();
+		void dtdoorListQuery.refetch();
+		void gotvListQuery.refetch();
+	}
+
 	function goToTab(routeName: string): void {
 		navigation.getParent()?.navigate(routeName);
 	}
@@ -164,17 +176,22 @@ export function HomeScreen() {
 						<Ionicons name="headset-outline" size={20} color="#1e293b" />
 					</Pressable>
 					<Pressable
-						onPress={handleNotImplemented}
+						onPress={() => navigation.navigate("Notification")}
 						hitSlop={8}
 						className="h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface active:opacity-80">
 						<Ionicons name="notifications-outline" size={20} color="#1e293b" />
-						<View className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger" />
+						{unreadNotificationCount > 0 ? (
+							<View className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger" />
+						) : null}
 					</Pressable>
 				</View>
 
 				<ScrollView
 					contentContainerStyle={{ padding: 16, gap: 12 }}
-					className="flex-1">
+					className="flex-1"
+					refreshControl={
+						<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+					}>
 					<View className="gap-xs rounded-lg bg-primary p-md">
 						<View className="flex-row items-start justify-between">
 							<View className="gap-xs">
@@ -287,8 +304,8 @@ export function HomeScreen() {
 							) : null}
 							<HomeQuickAccessItem
 								icon="paper-plane"
-								label="Broadcast"
-								onPress={handleNotImplemented}
+								label="Pengumuman"
+								onPress={() => navigation.navigate("Pengumuman")}
 							/>
 							<HomeQuickAccessItem
 								icon="star"

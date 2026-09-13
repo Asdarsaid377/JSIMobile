@@ -134,8 +134,11 @@ export function ProgramPemenanganScreen() {
           ListFooterComponent={dtdoorListQuery.isFetchingNextPage ? <DtdoorCardSkeleton /> : null}
           refreshControl={
             <RefreshControl
-              refreshing={dtdoorListQuery.isRefetching}
-              onRefresh={() => void dtdoorListQuery.refetch()}
+              refreshing={dtdoorListQuery.isRefetching || dtdoorCountQuery.isRefetching}
+              onRefresh={() => {
+                void dtdoorListQuery.refetch();
+                void dtdoorCountQuery.refetch();
+              }}
             />
           }
         />
@@ -176,7 +179,13 @@ export function ProgramPemenanganScreen() {
           onEndReachedThreshold={0.5}
           ListFooterComponent={gotvListQuery.isFetchingNextPage ? <GotvCardSkeleton /> : null}
           refreshControl={
-            <RefreshControl refreshing={gotvListQuery.isRefetching} onRefresh={() => void gotvListQuery.refetch()} />
+            <RefreshControl
+              refreshing={gotvListQuery.isRefetching || gotvCountQuery.isRefetching}
+              onRefresh={() => {
+                void gotvListQuery.refetch();
+                void gotvCountQuery.refetch();
+              }}
+            />
           }
         />
       )}

@@ -1,4 +1,4 @@
-import { FlatList, Text, View } from "react-native";
+import { FlatList, RefreshControl, Text, View } from "react-native";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -79,6 +79,15 @@ export function TargetSuaraKecamatanScreen() {
           !kelurahanQuery.isLoading && !kelurahanQuery.isError ? (
             <Text className="text-center text-body-md text-text-muted">Kelurahan/desa tidak ditemukan.</Text>
           ) : null
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={kelurahanQuery.isRefetching || targetMapQuery.isRefetching}
+            onRefresh={() => {
+              void kelurahanQuery.refetch();
+              void targetMapQuery.refetch();
+            }}
+          />
         }
       />
     </SafeAreaView>

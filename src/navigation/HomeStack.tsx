@@ -5,6 +5,7 @@ import { BudgetTransactionFormScreen } from "@/screens/budgeting/BudgetTransacti
 import { BudgetingKampanyeScreen } from "@/screens/budgeting/BudgetingKampanyeScreen";
 import { CustomerServiceScreen } from "@/screens/home/CustomerServiceScreen";
 import { HomeScreen } from "@/screens/home/HomeScreen";
+import { NotificationScreen } from "@/screens/home/NotificationScreen";
 import { RivalAktivitasFormScreen } from "@/screens/rivalcaleg/RivalAktivitasFormScreen";
 import { RivalCalegFormScreen } from "@/screens/rivalcaleg/RivalCalegFormScreen";
 import type { RivalCalegFormParams } from "@/screens/rivalcaleg/RivalCalegFormScreen";
@@ -16,8 +17,18 @@ import { IsuAspirasiFormScreen } from "@/screens/isuaspirasi/IsuAspirasiFormScre
 import { IsuAspirasiScreen } from "@/screens/isuaspirasi/IsuAspirasiScreen";
 import { IsuJanjiFormScreen } from "@/screens/isuaspirasi/IsuJanjiFormScreen";
 import type { IsuJanjiFormParams } from "@/screens/isuaspirasi/IsuJanjiFormScreen";
+import { QuickCountKandidatFormScreen } from "@/screens/quickcount/QuickCountKandidatFormScreen";
+import type { QuickCountKandidatFormParams } from "@/screens/quickcount/QuickCountKandidatFormScreen";
+import { QuickCountKandidatScreen } from "@/screens/quickcount/QuickCountKandidatScreen";
 import { QuickCountScreen } from "@/screens/quickcount/QuickCountScreen";
+import { QuickCountTpsFormScreen } from "@/screens/quickcount/QuickCountTpsFormScreen";
+import type { QuickCountTpsFormParams } from "@/screens/quickcount/QuickCountTpsFormScreen";
+import { QuickCountTpsManageScreen } from "@/screens/quickcount/QuickCountTpsManageScreen";
+import { PengumumanFormScreen } from "@/screens/pengumuman/PengumumanFormScreen";
+import { PengumumanScreen } from "@/screens/pengumuman/PengumumanScreen";
 import { LacakRelawanScreen } from "@/screens/tracking/LacakRelawanScreen";
+import { TimsesFormScreen } from "@/screens/timses/TimsesFormScreen";
+import type { TimsesFormParams } from "@/screens/timses/TimsesFormScreen";
 import { TimsesScreen } from "@/screens/timses/TimsesScreen";
 import { TokohFormScreen } from "@/screens/tokoh/TokohFormScreen";
 import type { TokohFormParams } from "@/screens/tokoh/TokohFormScreen";
@@ -26,8 +37,10 @@ import { TokohMasyarakatScreen } from "@/screens/tokoh/TokohMasyarakatScreen";
 export type HomeStackParamList = {
   Home: undefined;
   Timses: undefined;
+  TimsesForm: TimsesFormParams | undefined;
   LacakRelawan: undefined;
   CustomerService: undefined;
+  Notification: undefined;
   RivalCaleg: undefined;
   RivalCalegForm: RivalCalegFormParams | undefined;
   RivalWilayahForm: RivalWilayahFormParams | undefined;
@@ -40,10 +53,16 @@ export type HomeStackParamList = {
   // DptCard, params bawa dptRecord) — lihat TokohFormScreen.tsx.
   TokohForm: TokohFormParams | undefined;
   QuickCount: undefined;
+  QuickCountKandidat: undefined;
+  QuickCountKandidatForm: QuickCountKandidatFormParams | undefined;
+  QuickCountTpsManage: undefined;
+  QuickCountTpsForm: QuickCountTpsFormParams | undefined;
   AntiFraud: undefined;
   IsuAspirasi: undefined;
   IsuAspirasiForm: undefined;
   IsuJanjiForm: IsuJanjiFormParams | undefined;
+  Pengumuman: undefined;
+  PengumumanForm: undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -59,8 +78,10 @@ export function HomeStack() {
     <Stack.Navigator>
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Timses" component={TimsesScreen} options={{ title: "Timses" }} />
+      <Stack.Screen name="TimsesForm" component={TimsesFormScreen} options={{ title: "Anggota" }} />
       <Stack.Screen name="LacakRelawan" component={LacakRelawanScreen} options={{ title: "Lacak Relawan" }} />
       <Stack.Screen name="CustomerService" component={CustomerServiceScreen} options={{ title: "Customer Service" }} />
+      <Stack.Screen name="Notification" component={NotificationScreen} options={{ title: "Notifikasi" }} />
       <Stack.Screen name="RivalCaleg" component={RivalCalegScreen} options={{ title: "Deteksi Rival Caleg" }} />
       <Stack.Screen
         name="RivalCalegForm"
@@ -103,6 +124,26 @@ export function HomeStack() {
         options={{ title: "Identifikasi Tokoh Baru" }}
       />
       <Stack.Screen name="QuickCount" component={QuickCountScreen} options={{ title: "Quick Count" }} />
+      <Stack.Screen
+        name="QuickCountKandidat"
+        component={QuickCountKandidatScreen}
+        options={{ title: "Kelola Kandidat & Partai" }}
+      />
+      <Stack.Screen
+        name="QuickCountKandidatForm"
+        component={QuickCountKandidatFormScreen}
+        options={{ title: "Kandidat" }}
+      />
+      <Stack.Screen
+        name="QuickCountTpsManage"
+        component={QuickCountTpsManageScreen}
+        options={{ title: "Kelola TPS" }}
+      />
+      <Stack.Screen
+        name="QuickCountTpsForm"
+        component={QuickCountTpsFormScreen}
+        options={{ title: "TPS" }}
+      />
       <Stack.Screen name="AntiFraud" component={AntiFraudScreen} options={{ title: "Verifikasi Kunjungan" }} />
       <Stack.Screen
         name="IsuAspirasi"
@@ -118,6 +159,12 @@ export function HomeStack() {
         name="IsuJanjiForm"
         component={IsuJanjiFormScreen}
         options={{ title: "Usulan Materi Kampanye" }}
+      />
+      <Stack.Screen name="Pengumuman" component={PengumumanScreen} options={{ title: "Pengumuman" }} />
+      <Stack.Screen
+        name="PengumumanForm"
+        component={PengumumanFormScreen}
+        options={{ title: "Buat Pengumuman" }}
       />
     </Stack.Navigator>
   );

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -11,9 +11,9 @@ import { KekuatanPemilihCard } from "@/components/kekuatan/KekuatanPemilihCard";
 import { KekuatanRankingRow } from "@/components/kekuatan/KekuatanRankingRow";
 import { KekuatanWilayahCardSkeleton } from "@/components/kekuatan/KekuatanWilayahCardSkeleton";
 import { KekuatanWilayahSelector } from "@/components/kekuatan/KekuatanWilayahSelector";
-import { useDtdoorAll } from "@/hooks/useDtdoorAll";
+import { useKekuatanPemilihList } from "@/hooks/useKekuatanPemilihList";
 import { getDtdoorScore, getStrengthTier } from "@/lib/dtdoorScore";
-import type { Dtdoor } from "@/types/dtdoor";
+import type { KekuatanPemilihRecord } from "@/types/dtdoor";
 
 // "Daftar pemilih skor tertinggi" (build-plan.md) dibatasi top 10 — bukan full
 // 245 pemilih, konsisten dengan makna widget "ranking" (bukan list utama
@@ -31,11 +31,17 @@ const TOP_PEMILIH_LIMIT = 10;
 // role lain SEMENTARA dimatikan** (data kecamatan profil sudah tidak ada di
 // backend, lihat types/profile.ts) — semua role sekarang bebas pilih
 // kecamatan manapun, sama seperti admin dulu, sampai ada sumber data pengganti.
+// 2026-08-25 — sumber data ganti dari fetchDtdoorAll() (SELALU throw di real
+// mode) ke GET /dtdoor/kekuatan-pemilih (daftar individual ringkas, dibuat user
+// sendiri — lihat api-standards.md § Kekuatan Pemilih). Query di-fetch UNFILTERED
+// (bukan pakai param `kecamatan` endpoint itu) — dropdown butuh opsi kecamatan
+// dari SELURUH dataset, filter aktual tetap diterapkan client-side seperti
+// sebelumnya, cuma sumber datanya beda.
 export function KekuatanPemilihScreen() {
-  const dtdoorQuery = useDtdoorAll();
+  const pemilihQuery = useKekuatanPemilihList();
   const [selectedKecamatan, setSelectedKecamatan] = useState<string | null>(null);
 
-  const allRecords = dtdoorQuery.data ?? [];
+  const allRecords = pemilihQuery.data ?? [];
 
   const kecamatanOptions = useMemo(() => {
     const set = new Set<string>();
@@ -51,11 +57,13 @@ export function KekuatanPemilihScreen() {
   }, [allRecords, selectedKecamatan]);
 
   // Record tanpa kategori dikecualikan dari skoring (bukan skor 0) — pola sama
-  // persis dengan KekuatanWilayahScreen.
+  // persis dengan KekuatanWilayahScreen. Backend GET /dtdoor/kekuatan-pemilih
+  // sudah filter tipePemilihId IS NOT NULL, tapi getDtdoorScore() tetap bisa
+  // balas null kalau ada id di luar KATEGORI_SCORE — guard ini tetap dipertahankan.
   const scoredRecords = useMemo(() => {
-    const result: { record: Dtdoor; score: number }[] = [];
+    const result: { record: KekuatanPemilihRecord; score: number }[] = [];
     for (const record of scopedRecords) {
-      const score = getDtdoorScore(record.kategoriId);
+      const score = getDtdoorScore(record.tipePemilihId);
       if (score !== null) result.push({ record, score });
     }
     return result;
@@ -96,16 +104,20 @@ export function KekuatanPemilihScreen() {
     [scoredRecords],
   );
 
-  const isLoading = dtdoorQuery.isLoading;
-  const isError = dtdoorQuery.isError;
+  const isLoading = pemilihQuery.isLoading;
+  const isError = pemilihQuery.isError;
 
   function handleRetry(): void {
-    void dtdoorQuery.refetch();
+    void pemilihQuery.refetch();
   }
 
   return (
     <SafeAreaView edges={[]} className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} className="flex-1">
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 12 }}
+        className="flex-1"
+        refreshControl={<RefreshControl refreshing={pemilihQuery.isRefetching} onRefresh={handleRetry} />}
+      >
         <Text className="text-caption text-text-muted">Dihitung dari hasil kunjungan Door To Door</Text>
 
         <KekuatanWilayahSelector value={selectedKecamatan} onChange={setSelectedKecamatan} options={kecamatanOptions} />

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FlatList, Text, TextInput, View } from "react-native";
+import { FlatList, RefreshControl, Text, TextInput, View } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -93,6 +93,9 @@ export function DptKabupatenScreen() {
 							Kabupaten/kota tidak ditemukan.
 						</Text>
 					)
+				}
+				refreshControl={
+					<RefreshControl refreshing={kabupatenQuery.isRefetching} onRefresh={() => void kabupatenQuery.refetch()} />
 				}
 			/>
 		</SafeAreaView>

@@ -44,3 +44,26 @@ export function getStrengthTier(score: number): StrengthTier {
   if (score >= STRENGTH_THRESHOLDS.sedang) return "sedang";
   return "lemah";
 }
+
+// Dipakai KekuatanWilayahScreen sejak GET /dtdoor/rekap-kekuatan-wilayah (backend,
+// 2026-08-25) — server sudah mengagregasi per kelurahan jadi {tipePemilihId,jumlah}[],
+// bukan record mentah. Rata-rata tertimbang di sini SECARA MATEMATIS identik dengan
+// rata-rata per-record lama (sum(skor)/count) karena tiap record dalam 1 kategori
+// yang sama selalu berkontribusi skor yang sama persis — cuma re-agregasi lokasi
+// perhitungan, bukan ganti rumus. Kategori tak termapping (getDtdoorScore null)
+// dikecualikan dari pembagi, sama seperti kekecualian "record tanpa kategori" lama.
+export function computeWeightedTier(
+  kategori: { tipePemilihId: number; jumlah: number }[],
+): { skorRata: number; tier: StrengthTier } | null {
+  let totalSkor = 0;
+  let totalJumlah = 0;
+  for (const { tipePemilihId, jumlah } of kategori) {
+    const score = getDtdoorScore(tipePemilihId);
+    if (score === null) continue;
+    totalSkor += score * jumlah;
+    totalJumlah += jumlah;
+  }
+  if (totalJumlah === 0) return null;
+  const skorRata = Math.round(totalSkor / totalJumlah);
+  return { skorRata, tier: getStrengthTier(skorRata) };
+}

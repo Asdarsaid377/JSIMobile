@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, Text } from "react-native";
+import { RefreshControl, ScrollView, Text } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -24,7 +24,11 @@ export function BudgetPlafonScreen() {
 
   return (
     <SafeAreaView edges={[]} className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} className="flex-1">
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16 }}
+        className="flex-1"
+        refreshControl={<RefreshControl refreshing={posQuery.isRefetching} onRefresh={() => void posQuery.refetch()} />}
+      >
         <Text className="text-body-md text-text-muted">
           Atur batas anggaran (plafon) per pos untuk {scope === "bulan" ? "bulan berjalan" : "keseluruhan kampanye"}.
         </Text>

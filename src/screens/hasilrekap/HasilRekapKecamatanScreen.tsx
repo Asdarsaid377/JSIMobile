@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FlatList, Text, View } from "react-native";
+import { FlatList, RefreshControl, Text, View } from "react-native";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -98,6 +98,9 @@ export function HasilRekapKecamatanScreen() {
               </View>
             </View>
           ) : null
+        }
+        refreshControl={
+          <RefreshControl refreshing={snapshotQuery.isRefetching} onRefresh={() => void snapshotQuery.refetch()} />
         }
       />
       <HasilRekapCalegDetailSheet item={sheetCaleg} levelLabel="Kecamatan" onClose={() => setSheetCaleg(null)} />

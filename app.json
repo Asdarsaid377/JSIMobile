@@ -30,6 +30,13 @@
           "locationAlwaysAndWhenInUsePermission": "JSI Mobile membutuhkan lokasi untuk verifikasi GPS saat login."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "JSI Mobile membutuhkan kamera untuk verifikasi foto kunjungan Door To Door."
+        }
+      ],
+      "expo-file-system",
       "expo-splash-screen"
     ]
   }

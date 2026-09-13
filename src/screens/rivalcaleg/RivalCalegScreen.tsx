@@ -15,8 +15,10 @@ import { RivalWilayahRow } from "@/components/rivalcaleg/RivalWilayahRow";
 import { Button } from "@/components/ui/Button";
 import { useHideTabBar } from "@/hooks/useHideTabBar";
 import { useDeleteRivalCaleg, useRivalDeteksiSnapshot } from "@/hooks/useRivalCaleg";
+import { exportTableAsPdf } from "@/lib/exportPdf";
+import { RIVAL_ANCAMAN_LABEL, RIVAL_TREN_LABEL } from "@/types/rivalcaleg";
 import type { HomeStackParamList } from "@/navigation/HomeStack";
-import type { RivalCalegSummary } from "@/types/rivalcaleg";
+import type { RivalAktivitas, RivalCalegSummary, RivalKekuatanItem } from "@/types/rivalcaleg";
 
 type RivalTab = "kekuatan" | "daftar" | "aktivitas";
 
@@ -26,8 +28,47 @@ const TABS: { key: RivalTab; label: string }[] = [
   { key: "aktivitas", label: "Aktivitas" },
 ];
 
-function handleDownload(): void {
-  Alert.alert("Segera hadir", "Ekspor Deteksi Rival Caleg belum tersedia.");
+// Ekspor mengikuti tab yang sedang aktif (bukan gabungan semua tab) — data
+// per tab shape-nya beda total, digabung cuma bikin PDF kolom "kosong" acak.
+async function handleDownload(tab: RivalTab, kekuatan: RivalKekuatanItem[], daftar: RivalCalegSummary[], aktivitas: RivalAktivitas[]) {
+  try {
+    if (tab === "kekuatan") {
+      await exportTableAsPdf(
+        "Deteksi Rival Caleg — Estimasi Kekuatan Suara",
+        "deteksi-rival-caleg-kekuatan.pdf",
+        ["Nama", "Partai", "Kita/Rival", "Estimasi Suara", "Persentase", "Basis Dukungan"],
+        kekuatan.map((item) => [item.namaLengkap, item.partai, item.isKita ? "Kita" : "Rival", item.estimasiSuara, `${item.pct}%`, item.basis]),
+      );
+    } else if (tab === "daftar") {
+      await exportTableAsPdf(
+        "Deteksi Rival Caleg — Daftar Rival",
+        "deteksi-rival-caleg-daftar.pdf",
+        ["Nama", "Partai", "No. Urut", "Ancaman", "Estimasi Suara", "Suara 2024", "Tren", "Wilayah Bentrok", "Tokoh Berpihak", "Isu Diangkat", "Strategi"],
+        daftar.map((item) => [
+          item.namaLengkap,
+          item.partai,
+          item.noUrut,
+          RIVAL_ANCAMAN_LABEL[item.ancaman],
+          item.estimasiSuara,
+          item.suara2024,
+          RIVAL_TREN_LABEL[item.tren],
+          item.wilayahBentrok,
+          item.tokohBerpihak,
+          item.isuDiangkat,
+          item.strategi,
+        ]),
+      );
+    } else {
+      await exportTableAsPdf(
+        "Deteksi Rival Caleg — Aktivitas Terdeteksi",
+        "deteksi-rival-caleg-aktivitas.pdf",
+        ["Rival", "Jenis", "Deskripsi", "Wilayah", "Tanggal", "Pelapor"],
+        aktivitas.map((item) => [item.rival, item.jenis, item.deskripsi, item.wilayah, item.tanggal, item.pelapor]),
+      );
+    }
+  } catch (error) {
+    Alert.alert("Gagal ekspor", error instanceof Error ? error.message : "Terjadi kesalahan saat ekspor data.");
+  }
 }
 
 // Referensi: artboard "16 · DETEKSI RIVAL CALEG (SEKUNDER — DRAWER)" di project
@@ -50,20 +91,6 @@ export function RivalCalegScreen() {
   const [search, setSearch] = useState("");
   const [sheetItem, setSheetItem] = useState<RivalCalegSummary | null>(null);
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <Pressable
-          onPress={handleDownload}
-          hitSlop={8}
-          className="h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface active:opacity-80"
-        >
-          <Ionicons name="download-outline" size={20} color="#334155" />
-        </Pressable>
-      ),
-    });
-  }, [navigation]);
-
   const kekuatan = snapshotQuery.data?.kekuatan ?? [];
   const wilayah = snapshotQuery.data?.wilayah ?? [];
   const daftar = snapshotQuery.data?.daftar ?? [];
@@ -76,6 +103,20 @@ export function RivalCalegScreen() {
       (item) => item.namaLengkap.toLowerCase().includes(q) || item.partai.toLowerCase().includes(q),
     );
   }, [daftar, search]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => void handleDownload(tab, kekuatan, filteredDaftar, aktivitas)}
+          hitSlop={8}
+          className="h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface active:opacity-80"
+        >
+          <Ionicons name="download-outline" size={20} color="#334155" />
+        </Pressable>
+      ),
+    });
+  }, [navigation, tab, kekuatan, filteredDaftar, aktivitas]);
 
   const isLoading = snapshotQuery.isLoading;
   const isError = snapshotQuery.isError;

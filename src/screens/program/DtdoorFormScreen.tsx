@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
 
+import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
 
@@ -17,6 +19,24 @@ import type { DptRecord } from "@/types/dpt";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
+
+// Verifikasi kunjungan / anti-fraud (backend modul `antifraud`, 2026-08-25):
+// GPS diambil diam-diam saat submit (best-effort, TIDAK memblokir simpan kalau
+// izin ditolak/GPS mati — backend menandai "GPS nonaktif" otomatis, itu SINYAL
+// yang memang ingin ditangkap, bukan error), foto WAJIB diambil langsung dari
+// kamera in-app (bukan galeri — enforcement di titik input, konsisten dengan
+// teks "wajib GPS-stamp, foto" di AntiFraudScreen).
+async function ambilGpsSaatIni(): Promise<{ lat: number; long: number } | undefined> {
+  try {
+    const permission = await Location.getForegroundPermissionsAsync();
+    if (permission.status !== Location.PermissionStatus.GRANTED) return undefined;
+    const position = await Location.getCurrentPositionAsync();
+    return { lat: position.coords.latitude, long: position.coords.longitude };
+  } catch (error) {
+    console.error("[DtdoorFormScreen/ambilGpsSaatIni]", error);
+    return undefined;
+  }
+}
 
 // Screen ini di-mount dari 2 stack berbeda: ProgramStack (entri standalone,
 // route params undefined) DAN DptStack (fitur "Form Door To Door terintegrasi
@@ -117,12 +137,27 @@ export function DtdoorFormScreen() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fotoUri, setFotoUri] = useState<string | null>(null);
+  const [fotoError, setFotoError] = useState<string | null>(null);
 
   function setField<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleSubmit() {
+  async function handleAmbilFoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (permission.status !== "granted") {
+      Alert.alert("Izin kamera diperlukan", "Aktifkan izin kamera untuk verifikasi foto kunjungan.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.7, allowsEditing: false });
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setFotoUri(result.assets[0].uri);
+      setFotoError(null);
+    }
+  }
+
+  async function handleSubmit() {
     setSubmitError(null);
 
     const parsed = dtdoorFormSchema.safeParse({
@@ -144,36 +179,50 @@ export function DtdoorFormScreen() {
     }
     setErrors({});
 
+    if (!fotoUri) {
+      setFotoError("Foto kunjungan wajib diambil dari kamera sebelum menyimpan.");
+      return;
+    }
+    setFotoError(null);
+
+    const gps = await ambilGpsSaatIni();
+
     createMutation.mutate(
       {
-        namaLengkap: parsed.data.namaLengkap,
-        nik: parsed.data.nik,
-        jenisKelamin: parsed.data.jenisKelamin,
-        jumlahWajibPilih: parsed.data.jumlahWajibPilih,
-        noTelpon: parsed.data.noTelpon,
-        tps: parsed.data.tps,
-        rt: parsed.data.rt,
-        rw: parsed.data.rw,
-        desa: parsed.data.desa,
-        kecamatan: parsed.data.kecamatan,
-        kabupaten: parsed.data.kabupaten,
-        kunjungans: [
-          {
-            tipePemilihId: parsed.data.tipePemilihId,
-            pilihanPilegId: parsed.data.pilihanPilegId,
-            programBantuanId: parsed.data.programBantuanId,
-            merchendise: parsed.data.merchendise,
-            namaRelawan: parsed.data.namaRelawan,
-            kontakRelawan: parsed.data.kontakRelawan,
-          },
-        ],
-        // dptRecord.idDpt bisa null (record DPT yang dibuat lewat app ini,
-        // backend tidak pernah mengisi kolom idDpt untuk create — lihat
-        // api-standards.md § DPT) — kalau null, fallback ke idDpt sintetis
-        // standalone (createDtdoor() sudah handle default itu sendiri).
-        ...(dptRecord && dptRecord.idDpt !== null
-          ? { idDpt: dptRecord.idDpt, kabId: kabWilId, kelId: dptRecord.idKel }
-          : {}),
+        input: {
+          namaLengkap: parsed.data.namaLengkap,
+          nik: parsed.data.nik,
+          jenisKelamin: parsed.data.jenisKelamin,
+          jumlahWajibPilih: parsed.data.jumlahWajibPilih,
+          noTelpon: parsed.data.noTelpon,
+          tps: parsed.data.tps,
+          rt: parsed.data.rt,
+          rw: parsed.data.rw,
+          desa: parsed.data.desa,
+          kecamatan: parsed.data.kecamatan,
+          kabupaten: parsed.data.kabupaten,
+          kunjungans: [
+            {
+              tipePemilihId: parsed.data.tipePemilihId,
+              pilihanPilegId: parsed.data.pilihanPilegId,
+              programBantuanId: parsed.data.programBantuanId,
+              merchendise: parsed.data.merchendise,
+              namaRelawan: parsed.data.namaRelawan,
+              kontakRelawan: parsed.data.kontakRelawan,
+              timsesId: session?.user.id,
+              lat: gps?.lat,
+              long: gps?.long,
+            },
+          ],
+          // dptRecord.idDpt bisa null (record DPT yang dibuat lewat app ini,
+          // backend tidak pernah mengisi kolom idDpt untuk create — lihat
+          // api-standards.md § DPT) — kalau null, fallback ke idDpt sintetis
+          // standalone (createDtdoor() sudah handle default itu sendiri).
+          ...(dptRecord && dptRecord.idDpt !== null
+            ? { idDpt: dptRecord.idDpt, kabId: kabWilId, kelId: dptRecord.idKel }
+            : {}),
+        },
+        foto: { uri: fotoUri, fotoSumber: "kamera" },
       },
       {
         onSuccess: () => {
@@ -305,9 +354,32 @@ export function DtdoorFormScreen() {
           keyboardType="phone-pad"
         />
 
+        <View className="gap-xs pt-sm">
+          <Text className="text-label-lg font-semibold text-text-primary">Foto Kunjungan (Verifikasi)</Text>
+          <Text className="text-caption text-text-muted">
+            Wajib diambil langsung dari kamera saat kunjungan berlangsung, bukan dari galeri.
+          </Text>
+        </View>
+        {fotoUri ? (
+          <View className="gap-xs">
+            <Image source={{ uri: fotoUri }} style={{ height: 160, width: "100%", borderRadius: 12 }} />
+            <Pressable onPress={() => void handleAmbilFoto()} className="self-start">
+              <Text className="text-body-md font-semibold text-accent">Ambil Ulang</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Button label="📷 Ambil Foto Kunjungan" variant="secondary" onPress={() => void handleAmbilFoto()} />
+        )}
+        {fotoError ? <Text className="text-body-md text-danger">{fotoError}</Text> : null}
+
         {submitError ? <Text className="text-body-md text-danger">{submitError}</Text> : null}
 
-        <Button label="Simpan Kunjungan" variant="primary" loading={createMutation.isPending} onPress={handleSubmit} />
+        <Button
+          label="Simpan Kunjungan"
+          variant="primary"
+          loading={createMutation.isPending}
+          onPress={() => void handleSubmit()}
+        />
       </ScrollView>
     </SafeAreaView>
   );

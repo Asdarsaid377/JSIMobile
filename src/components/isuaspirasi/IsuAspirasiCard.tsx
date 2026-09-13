@@ -51,11 +51,11 @@ export function IsuAspirasiCard({ item, onPress }: Props) {
         <Badge label={item.kategori} variant="accent" />
       </View>
       <Text className="text-label-md text-text-secondary">&ldquo;{item.keluhan}&rdquo;</Text>
-      <View className="flex-row items-center justify-between">
-        <Text className="text-caption text-text-muted">
+      <View className="flex-row items-center justify-between gap-sm">
+        <Text className="flex-1 text-caption text-text-muted" numberOfLines={1}>
           {item.relawan} · {formatTanggal(item.tanggal)}
         </Text>
-        <View className={`rounded-md px-sm py-xs ${STATUS_BG_CLASS[item.status]}`}>
+        <View className={`shrink-0 rounded-md px-sm py-xs ${STATUS_BG_CLASS[item.status]}`}>
           <Text className={`text-caption font-semibold ${STATUS_TEXT_CLASS[item.status]}`}>{item.status}</Text>
         </View>
       </View>

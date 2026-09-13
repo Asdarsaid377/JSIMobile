@@ -6,40 +6,37 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SwingVoterCard } from "@/components/dtdoor/SwingVoterCard";
 import { KekuatanWilayahCardSkeleton } from "@/components/kekuatan/KekuatanWilayahCardSkeleton";
 import { Button } from "@/components/ui/Button";
-import { useDtdoorAll } from "@/hooks/useDtdoorAll";
-
-// kategoriId 7 = "Belum Menentukan" (lib/dtdoorScore.ts) — SATU-SATUNYA kategori
-// yang benar-benar "swing" (persuadable). Sengaja TIDAK termasuk "Pemilih
-// Kompetitor" (kategoriId 6) — itu sudah condong ke lawan, follow-up ke situ ROI
-// rendah, beda konteks dari "belum menentukan" yang genuinely masih bisa digiring.
-const SWING_KATEGORI_ID = 7;
+import { useSwingVoterList } from "@/hooks/useSwingVoterList";
 
 // "Prioritas Follow-up Pemilih Swing" — saran konsultan politik (2026-08-22, di
 // luar build-plan awal, permintaan user). Tidak ada referensi desain (izin build
 // dari ui-rules.md/ui-tokens.md). MURNI derive dari data Dtdoor yang sudah ada
-// (tidak ada data/schema baru sama sekali, beda dari Rival Caleg/Target Suara) —
-// reuse `useDtdoorAll()` yang sama dengan KekuatanWilayahScreen. Prioritas
-// diurutkan by `createdAt` ASCENDING (paling lama belum di-follow-up duluan)
-// — satu-satunya sinyal urgensi yang tersedia dari data yang ada, tanpa
+// (tidak ada data/schema baru sama sekali, beda dari Rival Caleg/Target Suara).
+// Prioritas diurutkan by `createdAt` ASCENDING (paling lama belum di-follow-up
+// duluan) — satu-satunya sinyal urgensi yang tersedia dari data yang ada, tanpa
 // mengarang field baru. **2026-08-23: scoping wilayah (admin lihat semua,
 // role lain cuma kecamatan sendiri) SEMENTARA dimatikan** — data kecamatan
 // profil sudah tidak ada di backend (lihat types/profile.ts), semua role
 // lihat semua data untuk sekarang.
+// 2026-08-25 — sumber data ganti dari useDtdoorAll() (SELALU throw di real mode)
+// ke useSwingVoterList() (lib/dtdoor/kategoriId 7, filter sekarang dilakukan DI
+// BACKEND lewat query tipePemilihId GET /dtdoor yang sudah ada — TIDAK perlu
+// endpoint baru, lihat api-standards.md § Swing Voter Follow-up). Sorting
+// ascending tetap di mobile (backend tidak sort by createdAt).
 export function SwingVoterFollowUpScreen() {
-  const dtdoorQuery = useDtdoorAll();
+  const swingQuery = useSwingVoterList();
 
   const swingVoters = useMemo(() => {
-    const all = dtdoorQuery.data ?? [];
-    return all
-      .filter((record) => record.kategoriId === SWING_KATEGORI_ID)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }, [dtdoorQuery.data]);
+    return [...(swingQuery.data ?? [])].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  }, [swingQuery.data]);
 
-  const isLoading = dtdoorQuery.isLoading;
-  const isError = dtdoorQuery.isError;
+  const isLoading = swingQuery.isLoading;
+  const isError = swingQuery.isError;
 
   function handleRetry(): void {
-    void dtdoorQuery.refetch();
+    void swingQuery.refetch();
   }
 
   return (
@@ -79,7 +76,7 @@ export function SwingVoterFollowUpScreen() {
             </Text>
           ) : null
         }
-        refreshControl={<RefreshControl refreshing={dtdoorQuery.isRefetching} onRefresh={handleRetry} />}
+        refreshControl={<RefreshControl refreshing={swingQuery.isRefetching} onRefresh={handleRetry} />}
       />
     </SafeAreaView>
   );

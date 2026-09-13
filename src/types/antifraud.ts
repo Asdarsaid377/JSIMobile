@@ -1,11 +1,10 @@
 // Referensi: artboard "14 · VERIFIKASI KUNJUNGAN / ANTI-FRAUD" di project
 // Claude Design user ("Desain Mobile JSI Dashboard",
 // 160ea937-2f8a-4ff4-9977-f8bc398c90a0), dibaca via DesignSync 2026-08-22.
-// Permintaan eksplisit user: "generate UI-nya saja dulu, nanti saya buatkan
-// API-nya" — screen ini SENGAJA read-only (cuma 1 fungsi fetch, tidak ada
-// mutation approve/reject sungguhan, lihat services/antifraud.ts &
-// AntiFraudEvidenceSheet.tsx). Fitur baru murni mobile — TIDAK ADA modul ini
-// di backend manapun (CLAUDE.md Aturan #6).
+// 2026-08-25: modul backend `antifraud` sekarang ADA (5 stage dibangun user
+// sendiri, lihat api-standards.md § Anti-Fraud) — WIRED penuh ke
+// GET /antifraud/summary + PATCH approve/reject sungguhan (lihat
+// services/antifraud.ts & AntiFraudScreen.tsx).
 
 export type FraudLevel = "Tinggi" | "Sedang" | "Rendah";
 
@@ -29,6 +28,14 @@ export type FraudCase = {
   gpsStatus: FraudGpsStatus;
   fotoStatus: FraudFotoStatus;
   checks: FraudCaseCheck[];
+  // ⚠️ GET /antifraud/summary (AntiFraudService.getSummary(), backend) BELUM
+  // menyertakan field ini di array `cases` (cuma ada di model FraudCase &
+  // GET /antifraud/cases/:id) — selalu undefined dari respons summary saat ini.
+  // AntiFraudScreen makanya pakai filter session-lokal (reviewedIds), BUKAN
+  // field ini, untuk menyembunyikan kasus yang baru saja di-approve/reject.
+  // Field ini disiapkan supaya begitu backend menambah `status` ke mapping
+  // cases di getSummary(), filter bisa pindah ke sini tanpa ubah tipe lagi.
+  status?: "pending" | "approved" | "rejected";
 };
 
 export type FraudJenisAnomali = {

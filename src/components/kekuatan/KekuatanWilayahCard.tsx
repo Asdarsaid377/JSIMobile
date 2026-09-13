@@ -22,8 +22,10 @@ const TIER_BADGE_VARIANT: Record<StrengthTier, "success" | "warning" | "danger">
 export function KekuatanWilayahCard({ namaKelurahan, jumlahKunjungan, skorRata, tier }: Props) {
   return (
     <View className="flex-row items-center justify-between gap-sm rounded-lg border border-border bg-surface p-md">
-      <View className="gap-xs">
-        <Text className="text-body-md font-semibold text-text-primary">{namaKelurahan}</Text>
+      <View className="flex-1 gap-xs">
+        <Text className="text-body-md font-semibold text-text-primary" numberOfLines={1}>
+          {namaKelurahan}
+        </Text>
         <Text className="text-caption text-text-muted">
           {jumlahKunjungan} kunjungan · skor rata {skorRata}
         </Text>

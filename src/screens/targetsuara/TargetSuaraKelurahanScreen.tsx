@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { FlatList, Text, View } from "react-native";
+import { FlatList, RefreshControl, Text, View } from "react-native";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -101,6 +101,15 @@ export function TargetSuaraKelurahanScreen() {
               Belum ada data DPT per-TPS untuk kelurahan ini.
             </Text>
           ) : null
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={dptQuery.isRefetching || targetMapQuery.isRefetching}
+            onRefresh={() => {
+              void dptQuery.refetch();
+              void targetMapQuery.refetch();
+            }}
+          />
         }
       />
     </SafeAreaView>

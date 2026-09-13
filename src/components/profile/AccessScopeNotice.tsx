@@ -2,20 +2,37 @@ import { Text, View } from "react-native";
 
 type Props = {
   roleLabel: string;
+  // Level scope paling spesifik yang di-assign admin ke akun ini (dari
+  // kabId/kecId/kelId di TimsesProfile) — null kalau belum di-assign sama
+  // sekali (lihat commons/helpers/scope.helper.ts backend: requester tanpa
+  // wilayah sengaja TIDAK dibatasi, bukan berarti scope-nya "kabupaten").
+  scopeLevel: "kelurahan" | "kecamatan" | "kabupaten" | null;
 };
 
-// 2026-08-23: prop `wilayahLabel`/`isAdmin` DIHAPUS — data kecamatan/wilayah
-// tugas sudah tidak ada di backend (lihat types/profile.ts), jadi pembatasan
-// akses per-wilayah SEMENTARA tidak bisa ditegakkan untuk role manapun.
-// Pesan diubah supaya jujur ("belum dibatasi per wilayah untuk sementara"),
-// BUKAN mengklaim non-admin punya akses admin.
-export function AccessScopeNotice({ roleLabel }: Props) {
+const SCOPE_LABEL: Record<NonNullable<Props["scopeLevel"]>, string> = {
+  kelurahan: "1 kelurahan/desa",
+  kecamatan: "1 kecamatan",
+  kabupaten: "1 kabupaten",
+};
+
+// 2026-08-25 — RBAC: scoping wilayah SEKARANG sungguhan ditegakkan
+// server-side (lihat api-standards.md § RBAC) — pesan di sini jujur soal
+// levelnya, TAPI tidak menyebut nama wilayah (kabId/kecId/kelId numerik,
+// belum ada cara resolve ke nama tanpa endpoint tambahan, lihat
+// progress-tracker.md Decisions).
+export function AccessScopeNotice({ roleLabel, scopeLevel }: Props) {
   return (
     <View className="rounded-lg border border-border bg-surface p-md">
       <Text className="text-body-md text-text-secondary">
-        Akses Anda sebagai <Text className="font-semibold text-text-primary">{roleLabel}</Text> saat ini belum
-        dibatasi per wilayah (data wilayah tugas belum tersedia dari server) — akan diaktifkan kembali begitu
-        tersedia.
+        Akses Anda sebagai <Text className="font-semibold text-text-primary">{roleLabel}</Text>{" "}
+        {scopeLevel ? (
+          <>
+            dibatasi ke <Text className="font-semibold text-text-primary">{SCOPE_LABEL[scopeLevel]}</Text> yang
+            ditugaskan admin.
+          </>
+        ) : (
+          "belum dibatasi per wilayah (admin belum menugaskan wilayah ke akun ini)."
+        )}
       </Text>
     </View>
   );

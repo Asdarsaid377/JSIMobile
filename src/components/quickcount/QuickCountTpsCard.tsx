@@ -36,7 +36,8 @@ export function QuickCountTpsCard({ item, onPress }: Props) {
             {item.noTps} — {item.kelurahan}
           </Text>
           <Text className="text-caption text-text-muted">
-            Saksi: {item.namaSaksi ?? "Belum ditugaskan"} · {item.totalDpt} DPT
+            Kab. {item.kabupaten}, Kec. {item.kecamatan} · Saksi: {item.namaSaksi ?? "Belum ditugaskan"} ·{" "}
+            {item.totalDpt} DPT
           </Text>
         </View>
         <Badge label={item.status} variant={QUICK_COUNT_STATUS_VARIANT[item.status]} />

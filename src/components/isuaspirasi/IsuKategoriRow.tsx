@@ -30,9 +30,11 @@ const TIER_BAR_CLASS: Record<Tier, string> = {
 export function IsuKategoriRow({ nama, jumlah, percentOfMax, wilayahTerkuat, tier }: Props) {
   return (
     <View className="gap-xs">
-      <View className="flex-row items-center justify-between">
-        <Text className="text-label-md font-semibold text-text-secondary">{nama}</Text>
-        <Text className={`text-label-md font-bold ${TIER_TEXT_CLASS[tier]}`}>{jumlah}</Text>
+      <View className="flex-row items-center justify-between gap-sm">
+        <Text className="flex-1 text-label-md font-semibold text-text-secondary" numberOfLines={1}>
+          {nama}
+        </Text>
+        <Text className={`shrink-0 text-label-md font-bold ${TIER_TEXT_CLASS[tier]}`}>{jumlah}</Text>
       </View>
       <View className="h-2 overflow-hidden rounded-full bg-surface-secondary">
         <View className={`h-full rounded-full ${TIER_BAR_CLASS[tier]}`} style={{ width: `${percentOfMax}%` }} />

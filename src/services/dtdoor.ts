@@ -3,13 +3,22 @@ import axios from "axios";
 import { apiClient } from "@/lib/api/client";
 import { isMockApiEnabled, mockDelay } from "@/lib/api/mock";
 import { generateSyntheticIdDptNumber } from "@/lib/api/syntheticId";
-import { KATEGORI_DTDOOR_OPTIONS } from "@/types/dtdoor";
+import { JENIS_KELAMIN_OPTIONS, KATEGORI_DTDOOR_OPTIONS } from "@/types/dtdoor";
 import type {
   CreateDtdoorInput,
+  DtdoorAnalyticsSnapshot,
+  DtdoorJenisKelaminRekap,
+  DtdoorKelurahanRekap,
   DtdoorLookupOption,
+  DtdoorRekapGroupRow,
   Dtdoor,
   DtdoorListResponse,
+  FotoKunjunganInput,
   JenisKelamin,
+  KekuatanPemilihFilter,
+  KekuatanPemilihRecord,
+  KekuatanWilayahFilter,
+  KekuatanWilayahRekap,
   PilihanPilegOption,
 } from "@/types/dtdoor";
 
@@ -286,6 +295,42 @@ export async function fetchDtdoorList(page: number, limit: number): Promise<Dtdo
   }
 }
 
+const TIPE_PEMILIH_PAGE_LIMIT = 50;
+
+async function fetchDtdoorByTipePemilihMock(tipePemilihId: number): Promise<Dtdoor[]> {
+  await mockDelay();
+  return mockDtdoorList.filter((record) => record.kategoriId === tipePemilihId);
+}
+
+// Dipakai SwingVoterFollowUpScreen. Filter `tipePemilihId` SUDAH didukung
+// GET /dtdoor (GetDtdoorDto, backend existing — TIDAK perlu endpoint baru).
+// Loop SEMUA halaman (bukan tebak 1 limit besar) — aman dilakukan di sini
+// (beda dari fetchDtdoorAll() lama yang throw) karena scope-nya sudah SEMPIT
+// (1 kategori, bukan seluruh tabel), jadi jumlah halaman selalu kecil.
+async function fetchDtdoorByTipePemilihReal(tipePemilihId: number): Promise<Dtdoor[]> {
+  const all: Dtdoor[] = [];
+  let page = 1;
+  for (;;) {
+    const { data: body } = await apiClient.get<DtdoorApiListEnvelope>("/dtdoor", {
+      params: { page, limit: TIPE_PEMILIH_PAGE_LIMIT, tipePemilihId },
+    });
+    all.push(...body.data.map(mapDtdoor));
+    if (page >= body.meta.totalPages) break;
+    page += 1;
+  }
+  return all;
+}
+
+export async function fetchDtdoorByTipePemilih(tipePemilihId: number): Promise<Dtdoor[]> {
+  if (isMockApiEnabled()) return fetchDtdoorByTipePemilihMock(tipePemilihId);
+  try {
+    return await fetchDtdoorByTipePemilihReal(tipePemilihId);
+  } catch (error) {
+    console.error("[services/dtdoor/fetchDtdoorByTipePemilih]", error);
+    throw new Error("Gagal memuat data pemilih swing. Coba lagi.");
+  }
+}
+
 async function fetchDtdoorAllMock(): Promise<Dtdoor[]> {
   await mockDelay();
   return mockDtdoorList;
@@ -300,6 +345,172 @@ export async function fetchDtdoorAll(): Promise<Dtdoor[]> {
     return fetchDtdoorAllMock();
   }
   throw new Error("Endpoint agregat Dtdoor belum dikonfirmasi. Aktifkan EXPO_PUBLIC_USE_MOCK_API=true untuk mode demo.");
+}
+
+// Mock meniru agregasi backend (group by desa+kategoriId) dari MOCK_DTDOOR yang
+// sudah ada — supaya hasil mock & real konsisten (pola sama services/quickcount.ts).
+// `kabId` diabaikan di mock (tipe `Dtdoor` mobile tidak punya kolom ini sama sekali,
+// filter kabId cuma relevan di real API), `kecamatan` didukung.
+async function fetchKekuatanWilayahRekapMock(filter?: KekuatanWilayahFilter): Promise<KekuatanWilayahRekap[]> {
+  await mockDelay();
+  const groups = new Map<string, Map<number, number>>();
+  for (const record of mockDtdoorList) {
+    if (!record.desa || record.kategoriId === null) continue;
+    if (filter?.kecamatan && record.kecamatan !== filter.kecamatan) continue;
+    const kategoriMap = groups.get(record.desa) ?? new Map<number, number>();
+    kategoriMap.set(record.kategoriId, (kategoriMap.get(record.kategoriId) ?? 0) + 1);
+    groups.set(record.desa, kategoriMap);
+  }
+  return Array.from(groups.entries()).map(([desa, kategoriMap]) => ({
+    desa,
+    totalKunjungan: Array.from(kategoriMap.values()).reduce((sum, jumlah) => sum + jumlah, 0),
+    kategori: Array.from(kategoriMap.entries()).map(([tipePemilihId, jumlah]) => ({ tipePemilihId, jumlah })),
+  }));
+}
+
+// 2026-08-25: modul backend dtdoor dapat endpoint agregasi baru khusus fitur
+// "Kekuatan Wilayah" (dibuat user sendiri dari prompt yang disiapkan, lihat
+// api-standards.md § Kekuatan Wilayah) — menggantikan fetchDtdoorAll() yang
+// selalu throw di real mode. Dikonfirmasi live: GET /dtdoor/rekap-kekuatan-wilayah
+// balas {message, data: KekuatanWilayahRekap[]} persis 1:1 dengan tipe mobile,
+// tidak perlu mapping.
+async function fetchKekuatanWilayahRekapReal(filter?: KekuatanWilayahFilter): Promise<KekuatanWilayahRekap[]> {
+  try {
+    const { data: envelope } = await apiClient.get<{ message: string; data: KekuatanWilayahRekap[] }>(
+      "/dtdoor/rekap-kekuatan-wilayah",
+      { params: filter },
+    );
+    return envelope.data;
+  } catch (error) {
+    console.error("[services/dtdoor/fetchKekuatanWilayahRekap]", error);
+    throw new Error("Gagal memuat data kekuatan wilayah. Coba lagi.");
+  }
+}
+
+export async function fetchKekuatanWilayahRekap(filter?: KekuatanWilayahFilter): Promise<KekuatanWilayahRekap[]> {
+  if (isMockApiEnabled()) return fetchKekuatanWilayahRekapMock(filter);
+  return fetchKekuatanWilayahRekapReal(filter);
+}
+
+// Mock meniru filter+shape backend dari MOCK_DTDOOR yang sudah ada (pola sama
+// fetchKekuatanWilayahRekapMock) — record tanpa kategori (kategoriId null)
+// dikecualikan, persis filter "tipePemilihId IS NOT NULL" di backend.
+async function fetchKekuatanPemilihListMock(filter?: KekuatanPemilihFilter): Promise<KekuatanPemilihRecord[]> {
+  await mockDelay();
+  return mockDtdoorList
+    .filter((record) => record.kategoriId !== null)
+    .filter((record) => !filter?.kecamatan || record.kecamatan === filter.kecamatan)
+    .map((record) => ({
+      id: record.id,
+      namaLengkap: record.namaLengkap,
+      desa: record.desa,
+      kecamatan: record.kecamatan,
+      tipePemilihId: record.kategoriId as number,
+      createdAt: record.createdAt,
+    }));
+}
+
+// 2026-08-25: endpoint baru khusus fitur "Kekuatan Pemilih" (dibuat user sendiri
+// dari prompt yang disiapkan, lihat api-standards.md § Kekuatan Pemilih) — daftar
+// individual ringkas, BEDA dari rekap-kekuatan-wilayah yang agregat per kelurahan.
+// Dikonfirmasi live: response {message, data: KekuatanPemilihRecord[]} cocok 1:1,
+// tidak perlu mapping.
+async function fetchKekuatanPemilihListReal(filter?: KekuatanPemilihFilter): Promise<KekuatanPemilihRecord[]> {
+  try {
+    const { data: envelope } = await apiClient.get<{ message: string; data: KekuatanPemilihRecord[] }>(
+      "/dtdoor/kekuatan-pemilih",
+      { params: filter },
+    );
+    return envelope.data;
+  } catch (error) {
+    console.error("[services/dtdoor/fetchKekuatanPemilihList]", error);
+    throw new Error("Gagal memuat data kekuatan pemilih. Coba lagi.");
+  }
+}
+
+export async function fetchKekuatanPemilihList(filter?: KekuatanPemilihFilter): Promise<KekuatanPemilihRecord[]> {
+  if (isMockApiEnabled()) return fetchKekuatanPemilihListMock(filter);
+  return fetchKekuatanPemilihListReal(filter);
+}
+
+// "Ringkasan Data" (DtdoorAnalyticsScreen) — meniru PERSIS agregasi lama yang
+// dulu dihitung dari fetchDtdoorAll() (SELALU throw di real mode), supaya
+// perilaku mock TIDAK berubah sama sekali dibanding sebelum wiring ini.
+async function fetchDtdoorAnalyticsMock(): Promise<DtdoorAnalyticsSnapshot> {
+  await mockDelay();
+  const categorized = mockDtdoorList.filter((record) => record.kategoriId !== null);
+  const kategori = KATEGORI_DTDOOR_OPTIONS.map((option) => ({
+    id: option.id,
+    label: option.label,
+    jumlah: categorized.filter((record) => record.kategoriId === option.id).length,
+  }));
+
+  const withGender = mockDtdoorList.filter((record) => record.jenisKelamin !== null);
+  const jenisKelamin = JENIS_KELAMIN_OPTIONS.map((option) => ({
+    value: option.value,
+    jumlah: withGender.filter((record) => record.jenisKelamin === option.value).length,
+  }));
+
+  const programTally = new Map<string, number>();
+  for (const record of mockDtdoorList) {
+    for (const program of [record.programBantuan1, record.programBantuan2, record.programBantuan3]) {
+      if (!program) continue;
+      programTally.set(program, (programTally.get(program) ?? 0) + 1);
+    }
+  }
+  const programBantuan = Array.from(programTally.entries()).map(([label, jumlah]) => ({ label, jumlah }));
+
+  return {
+    totalKunjungan: mockDtdoorList.length,
+    totalWajibPilih: mockDtdoorList.reduce((sum, record) => sum + record.jumlahWajibPilih, 0),
+    totalKelurahan: new Set(mockDtdoorList.map((record) => record.desa).filter((desa): desa is string => Boolean(desa)))
+      .size,
+    kategori,
+    jenisKelamin,
+    programBantuan,
+  };
+}
+
+// 2026-08-25: "Ringkasan Data" digabung dari 4 endpoint backend (3 SUDAH ADA
+// sebelumnya + 1 baru dibuat user, lihat api-standards.md § Ringkasan Data) —
+// TIDAK ada endpoint "analytics" tunggal, digabung client-side (pola sama
+// isuaspirasi/quickcount). `rekap-group/tipePemilihId` & `rekap-group/programBantuanId`
+// zero-filled untuk SEMUA opsi (beda dari rekap-kekuatan-wilayah yang cuma
+// menyertakan kategori terisi) — totalKunjungan/totalWajibPilih diturunkan dari
+// SUM baris tipePemilihId (setiap kunjungan WAJIB py tipePemilihId, jadi jumlahnya
+// = total kunjungan penuh, tidak ada sisa "belum dikategorikan" seperti skema lama).
+async function fetchDtdoorAnalyticsReal(): Promise<DtdoorAnalyticsSnapshot> {
+  try {
+    const [tipePemilihRes, programBantuanRes, jenisKelaminRes, kelurahanRes] = await Promise.all([
+      apiClient.get<{ data: DtdoorRekapGroupRow[] }>("/dtdoor/rekap-group/tipePemilihId"),
+      apiClient.get<{ data: DtdoorRekapGroupRow[] }>("/dtdoor/rekap-group/programBantuanId"),
+      apiClient.get<{ data: DtdoorJenisKelaminRekap[] }>("/dtdoor/jenis-kelamin"),
+      apiClient.get<{ data: DtdoorKelurahanRekap[] }>("/dtdoor/kelurahans"),
+    ]);
+
+    const kategoriRows = tipePemilihRes.data.data;
+    const totalKunjungan = kategoriRows.reduce((sum, row) => sum + row.jumlahDtdoor, 0);
+    const totalWajibPilih = kategoriRows.reduce((sum, row) => sum + row.jumlahWajibPilih, 0);
+
+    return {
+      totalKunjungan,
+      totalWajibPilih,
+      totalKelurahan: kelurahanRes.data.data.length,
+      kategori: kategoriRows.map((row) => ({ id: row.id, label: row.nama, jumlah: row.jumlahDtdoor })),
+      jenisKelamin: jenisKelaminRes.data.data
+        .filter((row): row is { jenisKelamin: JenisKelamin; total: number } => row.jenisKelamin !== null)
+        .map((row) => ({ value: row.jenisKelamin, jumlah: row.total })),
+      programBantuan: programBantuanRes.data.data.map((row) => ({ label: row.nama, jumlah: row.jumlahDtdoor })),
+    };
+  } catch (error) {
+    console.error("[services/dtdoor/fetchDtdoorAnalytics]", error);
+    throw new Error("Gagal memuat data ringkasan. Coba lagi.");
+  }
+}
+
+export async function fetchDtdoorAnalytics(): Promise<DtdoorAnalyticsSnapshot> {
+  if (isMockApiEnabled()) return fetchDtdoorAnalyticsMock();
+  return fetchDtdoorAnalyticsReal();
 }
 
 async function fetchDtdoorCountMock(): Promise<number> {
@@ -412,14 +623,52 @@ async function createDtdoorMock(input: CreateDtdoorInput): Promise<Dtdoor> {
   return created;
 }
 
+// Upload foto kunjungan HARUS terjadi setelah kunjungan tersimpan (endpoint
+// backend butuh kunjunganId, bukan idDpt) — createDtdoor() sengaja fetch balik
+// GET /dtdoor/:idDpt sesudah create sukses untuk dapat id itu, karena
+// POST /dtdoor (AntiFraudModule stage 0-4, 2026-08-25) cuma balas row Dtdoor
+// top-level, TIDAK menyertakan kunjungans[] yang baru dibuat. Kegagalan upload
+// foto TIDAK membatalkan kunjungan yang sudah tersimpan — cuma di-log, sama
+// pola toleransi seperti markDtdoorMutation di DtdoorFormScreen.
+async function uploadFotoKunjunganTerbaru(idDptUsed: number, foto: FotoKunjunganInput): Promise<void> {
+  try {
+    const { data: envelope } = await apiClient.get<{ message: string; data: DtdoorApiRecord }>(
+      `/dtdoor/${idDptUsed}`,
+    );
+    const kunjunganId = envelope.data.kunjungans?.[0]?.id;
+    if (!kunjunganId) {
+      console.error("[services/dtdoor/uploadFotoKunjunganTerbaru] kunjungan id tidak ditemukan setelah create");
+      return;
+    }
+
+    const formData = new FormData();
+    const filename = foto.uri.split("/").pop() || "foto.jpg";
+    formData.append("foto", { uri: foto.uri, name: filename, type: "image/jpeg" } as unknown as Blob);
+    formData.append("fotoSumber", foto.fotoSumber);
+
+    await apiClient.post(`/dtdoor/kunjungan/${kunjunganId}/foto`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  } catch (error) {
+    console.error("[services/dtdoor/uploadFotoKunjunganTerbuat]", error);
+  }
+}
+
 // 2026-08-23: schema create baru total (lihat types/dtdoor.ts § CreateDtdoorInput
 // & api-standards.md § dtdoor) — field flat camelCase + array `kunjungans`
 // wajib diisi minimal 1, ganti total dari body snake_case lama.
-export async function createDtdoor(input: CreateDtdoorInput): Promise<Dtdoor> {
+// `foto` (2026-08-25, modul antifraud) opsional — kalau diisi, diunggah SETELAH
+// create sukses (lihat uploadFotoKunjunganTerbaru). Tidak berlaku di mock mode
+// (mock tidak memodelkan FraudCase/fotoPath sama sekali).
+export async function createDtdoor(input: CreateDtdoorInput, foto?: FotoKunjunganInput): Promise<Dtdoor> {
   if (isMockApiEnabled()) {
     return createDtdoorMock(input);
   }
   try {
+    // Diekstrak jadi variabel (bukan cuma inline di body) supaya nilai yang
+    // SAMA persis dipakai lagi untuk GET /dtdoor/:idDpt di uploadFotoKunjunganTerbaru
+    // — kalau di-generate ulang di sana, idDpt akan beda dan lookup gagal.
+    const idDptUsed = input.idDpt ?? generateSyntheticIdDptNumber();
     const body = {
       nik: input.nik,
       namaLengkap: input.namaLengkap,
@@ -438,7 +687,7 @@ export async function createDtdoor(input: CreateDtdoorInput): Promise<Dtdoor> {
       // kabId/kelId default Bantaeng (satu-satunya kabupaten dengan data DPT
       // nyata, lihat STANDALONE_KAB_ID di atas) supaya tidak crash 500 di
       // lookup WilKab2024 backend.
-      idDpt: input.idDpt ?? generateSyntheticIdDptNumber(),
+      idDpt: idDptUsed,
       kabId: input.kabId ?? STANDALONE_KAB_ID,
       kelId: input.kelId ?? STANDALONE_KEL_ID,
       // WAJIB null eksplisit, BUKAN diomit — DtdoorService.create() (backend)
@@ -455,6 +704,9 @@ export async function createDtdoor(input: CreateDtdoorInput): Promise<Dtdoor> {
       "/dtdoor",
       body,
     );
+    if (foto) {
+      await uploadFotoKunjunganTerbaru(idDptUsed, foto);
+    }
     return mapDtdoor(envelope.data);
   } catch (error) {
     console.error("[services/dtdoor/createDtdoor]", error);

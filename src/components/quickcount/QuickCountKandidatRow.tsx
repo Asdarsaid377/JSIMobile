@@ -19,12 +19,17 @@ export function QuickCountKandidatRow({ nama, partai, votes, percent, leading }:
 
   return (
     <View className="gap-xs">
-      <View className="flex-row items-baseline justify-between">
-        <Text className="text-label-md font-semibold text-text-primary">
+      {/* flex-1+numberOfLines di kiri, shrink-0 di kanan — React Native
+          flex-row default flexShrink:0 (beda dari CSS web), nama+partai
+          panjang (sekarang bisa diisi admin lewat CRUD, bukan lagi demo
+          text pendek tetap) akan dorong angka votes keluar card tanpa ini,
+          kelas bug yang sama dengan RivalWilayahRow. */}
+      <View className="flex-row items-baseline justify-between gap-sm">
+        <Text className="flex-1 text-label-md font-semibold text-text-primary" numberOfLines={1}>
           {nama}
           {partai ? ` (${partai})` : ""}
         </Text>
-        <Text className={`text-label-md font-bold ${colorClass}`}>
+        <Text className={`shrink-0 text-label-md font-bold ${colorClass}`}>
           {votes.toLocaleString("id-ID")} · {Math.round(percent)}%
         </Text>
       </View>

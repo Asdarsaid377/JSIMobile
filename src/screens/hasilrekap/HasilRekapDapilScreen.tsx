@@ -1,4 +1,4 @@
-import { FlatList, Text, View } from "react-native";
+import { FlatList, RefreshControl, Text, View } from "react-native";
 
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -58,6 +58,7 @@ export function HasilRekapDapilScreen() {
             <Text className="text-center text-body-md text-text-muted">Dapil tidak ditemukan.</Text>
           ) : null
         }
+        refreshControl={<RefreshControl refreshing={dapilQuery.isRefetching} onRefresh={() => void dapilQuery.refetch()} />}
       />
     </SafeAreaView>
   );

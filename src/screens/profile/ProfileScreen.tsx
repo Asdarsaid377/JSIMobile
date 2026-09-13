@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
@@ -14,17 +14,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLocationPermission } from "@/hooks/useLocationPermission";
 import { useProfile } from "@/hooks/useProfile";
 import { useUpdateProfile } from "@/hooks/useUpdateProfile";
-import type { Role } from "@/types/auth";
+import { ROLE_LABEL } from "@/lib/permissions";
+import type { TimsesProfile } from "@/types/profile";
 
-const ROLE_LABEL: Record<Role, string> = {
-  admin: "Admin",
-  adminsekret: "Adminsekret",
-  timses: "Timses",
-  relawankabupaten: "Relawan Kabupaten",
-  relawankecamatan: "Relawan Kecamatan",
-  relawandesa: "Relawan Desa",
-  relawantps: "Relawan TPS",
-};
+function scopeLevelOf(profile: TimsesProfile): "kelurahan" | "kecamatan" | "kabupaten" | null {
+  if (profile.kelId) return "kelurahan";
+  if (profile.kecId) return "kecamatan";
+  if (profile.kabId) return "kabupaten";
+  return null;
+}
 
 const profileSchema = z.object({
   namaLengkap: z.string().min(1, "Nama lengkap wajib diisi."),
@@ -39,7 +37,7 @@ type FormErrors = Partial<Record<"namaLengkap", string>>;
 // "TIMSES · KEC. CILEUNYI", sekarang "TIMSES" saja).
 export function ProfileScreen() {
   const { session, logout } = useAuth();
-  const { data: profile, isLoading, isError, refetch } = useProfile();
+  const { data: profile, isLoading, isError, isRefetching, refetch } = useProfile();
   const updateMutation = useUpdateProfile(session?.user.id ?? -1);
   const { status: locationStatus } = useLocationPermission();
 
@@ -113,7 +111,11 @@ export function ProfileScreen() {
 
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />}
+      >
         <View className="gap-md px-margin-mobile pt-sm">
           <Text className="text-headline-md font-semibold text-text-primary">Profil Saya</Text>
 
@@ -149,7 +151,7 @@ export function ProfileScreen() {
             </View>
           </View>
 
-          <AccessScopeNotice roleLabel={roleLabel} />
+          <AccessScopeNotice roleLabel={roleLabel} scopeLevel={scopeLevelOf(profile)} />
 
           <Button label="Keluar" variant="secondary" onPress={handleLogout} />
         </View>

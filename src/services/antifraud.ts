@@ -1,16 +1,13 @@
+import { apiClient } from "@/lib/api/client";
 import { isMockApiEnabled, mockDelay } from "@/lib/api/mock";
 import type { AntiFraudSnapshot } from "@/types/antifraud";
 
-// Tidak ada endpoint/schema apapun untuk "Verifikasi Kunjungan / Anti-Fraud"
-// (CLAUDE.md Aturan #6) — beda dari fitur mock lain di app ini, sesi ini
-// SENGAJA cuma bikin UI + 1 fungsi READ (permintaan eksplisit user "generate
-// UI-nya saja dulu, nanti saya buatkan API-nya"). Tidak ada fungsi
-// create/update/approve/reject — tombol "Setujui"/"Tolak Data" di
-// AntiFraudEvidenceSheet cuma tutup sheet + Alert, persis perilaku asli di
-// mockup (`onClick="{{ closeFraudSheet }}"` SAMA untuk kedua tombol, tidak
-// ada logic approve/reject beneran di kode sumbernya juga).
-const ENDPOINT_NOT_CONFIRMED =
-  "Endpoint Verifikasi Kunjungan belum ada — fitur ini masih UI saja. Aktifkan EXPO_PUBLIC_USE_MOCK_API=true untuk demo.";
+// 2026-08-25: modul backend `antifraud` sekarang ADA (dibaca langsung dari
+// /Users/asdarsaid/JSI/api/src/antifraud + live curl ke backend LOKAL —
+// GET /antifraud/summary & /cases balas 401 Unauthorized bukan 404, route ADA
+// & ter-guard). WIRED penuh: GET /antifraud/summary (baca) + PATCH
+// /antifraud/cases/:id/approve|reject (mutation sungguhan, bukan lagi dummy
+// Alert — lihat AntiFraudScreen.tsx & hooks/useAntiFraud.ts).
 
 // 4 kasus & 5 relawan persis nama/detail di mockup (contoh ilustratif) — kasus
 // dihubungkan ke relawan yang sama dengan `fraudRelawanList` (Asep Saepudin,
@@ -104,7 +101,49 @@ async function fetchAntiFraudSnapshotMock(): Promise<AntiFraudSnapshot> {
   return MOCK_SNAPSHOT;
 }
 
+async function fetchAntiFraudSnapshotReal(): Promise<AntiFraudSnapshot> {
+  try {
+    // Bentuk response getSummary() (backend) sudah cocok 1:1 dengan
+    // AntiFraudSnapshot — tidak perlu mapping field seperti fitur lain.
+    const { data: envelope } = await apiClient.get<{ message: string; data: AntiFraudSnapshot }>(
+      "/antifraud/summary",
+    );
+    return envelope.data;
+  } catch (error) {
+    console.error("[services/antifraud/fetchAntiFraudSnapshot]", error);
+    throw new Error("Gagal memuat data verifikasi kunjungan. Coba lagi.");
+  }
+}
+
 export async function fetchAntiFraudSnapshot(): Promise<AntiFraudSnapshot> {
   if (isMockApiEnabled()) return fetchAntiFraudSnapshotMock();
-  throw new Error(ENDPOINT_NOT_CONFIRMED);
+  return fetchAntiFraudSnapshotReal();
+}
+
+// Mock mode tidak memodelkan status FraudCase sama sekali (MOCK_SNAPSHOT
+// statis) — approve/reject di mock cuma delay tanpa efek, cukup untuk demo UI.
+export async function approveFraudCase(id: number): Promise<void> {
+  if (isMockApiEnabled()) {
+    await mockDelay();
+    return;
+  }
+  try {
+    await apiClient.patch(`/antifraud/cases/${id}/approve`);
+  } catch (error) {
+    console.error("[services/antifraud/approveFraudCase]", error);
+    throw new Error("Gagal menyetujui kasus. Coba lagi.");
+  }
+}
+
+export async function rejectFraudCase(id: number): Promise<void> {
+  if (isMockApiEnabled()) {
+    await mockDelay();
+    return;
+  }
+  try {
+    await apiClient.patch(`/antifraud/cases/${id}/reject`);
+  } catch (error) {
+    console.error("[services/antifraud/rejectFraudCase]", error);
+    throw new Error("Gagal menolak kasus. Coba lagi.");
+  }
 }

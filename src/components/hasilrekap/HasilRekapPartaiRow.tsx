@@ -16,16 +16,23 @@ type Props = {
 export function HasilRekapPartaiRow({ partai, suaraTotal, percentOfMax, isTop }: Props) {
   return (
     <View className="gap-xs">
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center gap-xs">
-          <Text className={`text-label-md text-text-secondary ${isTop ? "font-bold" : "font-semibold"}`}>{partai}</Text>
+      <View className="flex-row items-center justify-between gap-sm">
+        <View className="flex-1 flex-row items-center gap-xs">
+          <Text
+            className={`flex-1 text-label-md text-text-secondary ${isTop ? "font-bold" : "font-semibold"}`}
+            numberOfLines={1}
+          >
+            {partai}
+          </Text>
           {isTop ? (
-            <View className="rounded-full bg-accent-soft px-sm py-xs">
+            <View className="shrink-0 rounded-full bg-accent-soft px-sm py-xs">
               <Text className="text-caption font-bold text-accent">Unggul</Text>
             </View>
           ) : null}
         </View>
-        <Text className="text-label-md font-bold text-text-primary">{suaraTotal.toLocaleString("id-ID")}</Text>
+        <Text className="shrink-0 text-label-md font-bold text-text-primary">
+          {suaraTotal.toLocaleString("id-ID")}
+        </Text>
       </View>
       <View className="h-2 overflow-hidden rounded-full bg-surface-secondary">
         <View className="h-full rounded-full bg-accent" style={{ width: `${percentOfMax}%` }} />
